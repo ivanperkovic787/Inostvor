@@ -1,0 +1,26 @@
+# Build
+bin/
+obj/
+out/
+BenchmarkDotNet.Artifacts/
+*.binlog
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# Test rezultati
+TestResults/
+*.trx
+coverage*.xml
+*.coverage
+
+# NuGet
+*.nupkg
+packages/
+
+# OS
+Thumbs.db
+.DS_Store

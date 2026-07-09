@@ -1,0 +1,137 @@
+classDiagram
+    direction TB
+
+    class CutJob {
+        +List~CutPath~ Paths
+        +ToolSettings Settings
+        +Aabb Bounds
+    }
+    class Part {
+        +Contour Outer
+        +List~Contour~ Holes
+    }
+    class Contour {
+        +List~Segment~ Segments
+        +ContourKind Kind
+        +bool IsClockwise
+        +double SignedArea()
+    }
+    class CutPath {
+        +Segment[] LeadIn
+        +Segment[] Body
+        +Segment[] LeadOut
+        +Point2 PiercePoint
+        +int Order
+    }
+    class ToolSettings {
+        +double KerfWidth
+        +double FeedRate
+        +double PierceDelay
+        +double PierceHeight
+        +double CutHeight
+        +LeadSettings Lead
+        +double Overcut
+    }
+
+    class IDxfImporter {
+        <<interface>>
+        +Import(path) ImportResult
+    }
+    class IContourDetector {
+        <<interface>>
+        +Detect(segments) Contour[]
+    }
+    class IToolpathGenerator {
+        <<interface>>
+        +Generate(parts, settings) CutPath[]
+    }
+    class ICutOrderPlanner {
+        <<interface>>
+        +Plan(paths) CutJob
+    }
+    class IPostProcessor {
+        <<interface>>
+        +string Name
+        +Emit(job) string
+    }
+
+    class DxfImporter
+    class ContourDetector
+    class ContourClassifier {
+        +Classify(contours) Part[]
+    }
+    class KerfOffsetService {
+        +Offset(contour, kerf) Contour
+    }
+    class ArcFitter {
+        +Fit(polyline, tol) Segment[]
+    }
+    class LeadGenerator {
+        +Attach(contour, settings) CutPath
+    }
+    class ToolpathGenerator
+    class CutOrderPlanner
+    class SimulationEngine {
+        +Seek(time) SimulationState
+        +TotalTime double
+    }
+
+    class GCodeEmitter {
+        +Line(code)
+        +Rapid(p) / Feed(p) / ArcCW(p,c)
+    }
+    class PostProcessorBase {
+        <<abstract>>
+        #EmitHeader()
+        #EmitPierce(path)
+        #EmitCut(path)
+        #EmitFooter()
+    }
+    class Mach3Post
+    class Ec300Post {
+        #EmitPierce() override
+        #EmitG92Workaround()
+    }
+
+    class MainViewModel {
+        +OpenDxfCommand
+        +GenerateCommand
+        +ExportGCodeCommand
+    }
+    class Viewport2D {
+        +WorldToScreen(p)
+        +ZoomAt(cursor, factor)
+        +Pan(delta)
+        +ZoomToFit(bounds)
+    }
+    class SceneRenderer {
+        +Render(canvas, job)
+    }
+
+    IDxfImporter <|.. DxfImporter
+    IContourDetector <|.. ContourDetector
+    IToolpathGenerator <|.. ToolpathGenerator
+    ICutOrderPlanner <|.. CutOrderPlanner
+    IPostProcessor <|.. PostProcessorBase
+    PostProcessorBase <|-- Mach3Post
+    Mach3Post <|-- Ec300Post
+    PostProcessorBase --> GCodeEmitter
+
+    ToolpathGenerator --> ContourClassifier
+    ToolpathGenerator --> KerfOffsetService
+    ToolpathGenerator --> ArcFitter
+    ToolpathGenerator --> LeadGenerator
+    ToolpathGenerator --> CutPath
+
+    Part --> Contour
+    CutJob --> CutPath
+    CutJob --> ToolSettings
+    CutOrderPlanner --> CutJob
+    SimulationEngine --> CutJob
+
+    MainViewModel --> IDxfImporter
+    MainViewModel --> IToolpathGenerator
+    MainViewModel --> ICutOrderPlanner
+    MainViewModel --> IPostProcessor
+    SceneRenderer --> Viewport2D
+    SceneRenderer --> CutJob

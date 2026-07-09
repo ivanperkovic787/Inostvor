@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Nije dio aplikacije. Služi isključivo za mjerenje performansi ključnih algoritama tijekom razvoja.
+       Svaki modul (M1+) dodaje svoje benchmarke: DXF import, detekcija kontura, kerf offset,
+       arc fitting, ToolpathGenerator, ToolpathValidator, rendering velikih datoteka, G-kod. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <!-- BenchmarkDotNet zahtijeva Release optimizacije; benchmark projekt ne buildamo u Debugu s greškom. -->
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PlasmaCAM.Kernel\PlasmaCAM.Kernel.csproj" />
+    <ProjectReference Include="..\..\src\PlasmaCAM.Core\PlasmaCAM.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+</Project>
