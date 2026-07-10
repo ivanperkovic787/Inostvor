@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
+    <!-- CA2225: matematički primitivi namjerno izlažu operatore bez imenovanih alternativa. -->
+    <NoWarn>$(NoWarn);CA2225</NoWarn>
   </PropertyGroup>
-
 </Project>
