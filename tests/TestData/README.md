@@ -39,4 +39,4 @@ entitete, INSERT transformacije (skala/rotacija/zrcaljenje/neuniformna skala,
 LibreCAD, QCAD…) dodaju se u `ByVendor/<alat>/` kad budu dostupni** — sintetske
 datoteke ne mogu reproducirati vendor-specifične quirkove (redoslijed sekcija,
 proxy entiteti, nestandardna zaglavlja). Svaka nova vendor datoteka dobiva
-regresijski test u `PlasmaCAM.Import.NetDxf.Tests`.
+regresijski test u `Inostvor.Import.NetDxf.Tests`.

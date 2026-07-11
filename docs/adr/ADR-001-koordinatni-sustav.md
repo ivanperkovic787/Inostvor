@@ -11,7 +11,7 @@ posebno oko Clipper2 operacija (kerf offset, booleove operacije).
 
 Domena i cijeli pipeline rade u `double` (milimetri). Cjelobrojne koordinate
 (Int64, skala ×1000 = 1 µm) koriste se isključivo unutar Clipper2 adaptera
-(`PlasmaCAM.Geometry.Offset.ClipperAdapter`, dolazi u M5).
+(`Inostvor.Geometry.Offset.ClipperAdapter`, dolazi u M5).
 
 ## Obrazloženje
 

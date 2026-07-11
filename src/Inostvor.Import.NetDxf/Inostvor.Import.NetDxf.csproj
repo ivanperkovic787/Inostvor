@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <!-- CA1031: import je granica sustava — SVE iznimke parsera pretvaraju se u ImportResult.Fail
+         (Result pattern po Baseline v1.1); catch-all je ovdje namjeran i ispravan. -->
+    <NoWarn>$(NoWarn);CA1031</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Inostvor.Kernel\Inostvor.Kernel.csproj" />
+    <ProjectReference Include="..\Inostvor.Core\Inostvor.Core.csproj" />
+    <ProjectReference Include="..\Inostvor.Sdk\Inostvor.Sdk.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="netDxf" />
+  </ItemGroup>
+</Project>

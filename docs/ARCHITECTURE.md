@@ -1,4 +1,4 @@
-# PlasmaCAM — Arhitektura sustava (v1.1 — KONAČNA, za obostranu potvrdu)
+# Inostvor — Arhitektura sustava (v1.1 — KONAČNA, za obostranu potvrdu)
 
 **Status:** Ažurirano prema odobrenju + 6 izmjena. Čeka finalnu potvrdu → zatim M0.
 **Datum:** 2026-07-09
@@ -35,28 +35,28 @@
 ## 3. Konačna struktura solutiona
 
 ```
-PlasmaCAM.sln
+Inostvor.sln
 │
 ├── src/
-│   ├── PlasmaCAM.Kernel/           # ★NOVO — čista matematika. Ovisnosti: NIŠTA.
-│   ├── PlasmaCAM.Core/             # Domena + apstrakcije. Ovisi: Kernel.
-│   ├── PlasmaCAM.Sdk/              # ★NOVO — javni Plugin API. Ovisi: Kernel, Core.
-│   ├── PlasmaCAM.Geometry/         # Konture, offset, leadovi. Ovisi: Kernel, Core, Clipper2.
-│   ├── PlasmaCAM.Import.NetDxf/    # ★PREIMENOVANO — prva IDxfImporter implementacija. Ovisi: Core, netDxf.
-│   ├── PlasmaCAM.Cam/              # Toolpath pipeline, VALIDATOR, redoslijed, simulacija. Ovisi: Kernel, Core, Geometry.
-│   ├── PlasmaCAM.Post/             # G-kod + postprocesori. Ovisi: Core.
-│   ├── PlasmaCAM.Data/             # SQLite. Ovisi: Core, Microsoft.Data.Sqlite, Dapper.
-│   ├── PlasmaCAM.Rendering/        # SkiaSharp scena. Ovisi: Kernel, Core, SkiaSharp.
-│   ├── PlasmaCAM.ViewModels/       # MVVM. Ovisi: Core, Sdk, CommunityToolkit.Mvvm. Bez WinUI!
-│   └── PlasmaCAM.App/              # WinUI 3 host + PluginLoader infrastruktura. Ovisi: sve.
+│   ├── Inostvor.Kernel/           # ★NOVO — čista matematika. Ovisnosti: NIŠTA.
+│   ├── Inostvor.Core/             # Domena + apstrakcije. Ovisi: Kernel.
+│   ├── Inostvor.Sdk/              # ★NOVO — javni Plugin API. Ovisi: Kernel, Core.
+│   ├── Inostvor.Geometry/         # Konture, offset, leadovi. Ovisi: Kernel, Core, Clipper2.
+│   ├── Inostvor.Import.NetDxf/    # ★PREIMENOVANO — prva IDxfImporter implementacija. Ovisi: Core, netDxf.
+│   ├── Inostvor.Cam/              # Toolpath pipeline, VALIDATOR, redoslijed, simulacija. Ovisi: Kernel, Core, Geometry.
+│   ├── Inostvor.Post/             # G-kod + postprocesori. Ovisi: Core.
+│   ├── Inostvor.Data/             # SQLite. Ovisi: Core, Microsoft.Data.Sqlite, Dapper.
+│   ├── Inostvor.Rendering/        # SkiaSharp scena. Ovisi: Kernel, Core, SkiaSharp.
+│   ├── Inostvor.ViewModels/       # MVVM. Ovisi: Core, Sdk, CommunityToolkit.Mvvm. Bez WinUI!
+│   └── Inostvor.App/              # WinUI 3 host + PluginLoader infrastruktura. Ovisi: sve.
 │
 ├── tests/
-│   ├── PlasmaCAM.Kernel.Tests/     # ★NOVO
-│   ├── PlasmaCAM.Geometry.Tests/
-│   ├── PlasmaCAM.Cam.Tests/        # uključuje Validation testove
-│   ├── PlasmaCAM.Import.NetDxf.Tests/
-│   ├── PlasmaCAM.Post.Tests/
-│   └── PlasmaCAM.ViewModels.Tests/ # uključuje Undo/Redo testove
+│   ├── Inostvor.Kernel.Tests/     # ★NOVO
+│   ├── Inostvor.Geometry.Tests/
+│   ├── Inostvor.Cam.Tests/        # uključuje Validation testove
+│   ├── Inostvor.Import.NetDxf.Tests/
+│   ├── Inostvor.Post.Tests/
+│   └── Inostvor.ViewModels.Tests/ # uključuje Undo/Redo testove
 │
 ├── docs/adr/                       # ADR-001 (koordinate), ADR-002 (plugin izolacija)...
 ├── tools/
@@ -78,10 +78,10 @@ App ──► ViewModels ──► Sdk ──► Core ──► Kernel
 
 ## 4. Novi/izmijenjeni moduli u detalje
 
-### 4.1 PlasmaCAM.Kernel (točka 2)
+### 4.1 Inostvor.Kernel (točka 2)
 
 ```
-PlasmaCAM.Kernel/
+Inostvor.Kernel/
 ├── Primitives/
 │   ├── Point2.cs, Vector2.cs          readonly struct, double
 │   ├── LineSeg.cs, ArcSeg.cs          segmenti kao primitivi (lukovi first-class!)
@@ -104,14 +104,14 @@ PlasmaCAM.Kernel/
 ### 4.2 Zamjenjiv DXF parser (točka 1)
 
 - `Core.Abstractions.IDxfImporter` ostaje jedina ovisnost ostatka sustava.
-- `PlasmaCAM.Import.NetDxf.NetDxfImporter` = prva implementacija. netDxf NuGet referenca postoji SAMO u tom projektu.
-- Budući `AcadSharpImporter` = novi projekt `PlasmaCAM.Import.AcadSharp`, registracija u DI (ili kroz `IImportPlugin`), nula izmjena drugdje.
+- `Inostvor.Import.NetDxf.NetDxfImporter` = prva implementacija. netDxf NuGet referenca postoji SAMO u tom projektu.
+- Budući `AcadSharpImporter` = novi projekt `Inostvor.Import.AcadSharp`, registracija u DI (ili kroz `IImportPlugin`), nula izmjena drugdje.
 - `ImportResult` je parser-neutralan: `Segment[]` + upozorenja + metapodaci (INSUNITS, layeri) — nijedan netDxf tip ne izlazi iz Import projekta.
 
 ### 4.3 ToolpathValidator (točka 3)
 
 ```
-PlasmaCAM.Cam/Validation/
+Inostvor.Cam/Validation/
 ├── ToolpathValidator.cs               orkestrator: izvršava sva registrirana pravila
 ├── ValidationReport.cs                nalazi s Severity (Error | Warning | Info) + referencom na entitet + pozicijom
 └── Rules/
@@ -132,7 +132,7 @@ PlasmaCAM.Cam/Validation/
 ### 4.4 Undo/Redo — Command pattern (točka 4)
 
 ```
-PlasmaCAM.Core/
+Inostvor.Core/
 ├── Abstractions/IUndoableCommand.cs   Execute() / Undo() / string Description
 ├── Abstractions/IUndoService.cs      Do(cmd), Undo(), Redo(), CanUndo/CanRedo, events
 └── Services/UndoRedoService.cs        dva stacka, limit dubine, transakcije (CompositeCommand)
@@ -142,10 +142,10 @@ PlasmaCAM.Core/
 - V1 implementira infrastrukturu + komande koje ionako nastaju u M5-M8 (izmjene ToolSettings, per-contour override, redoslijed). Puna pokrivenost svih operacija dolazi prirodno jer drugog puta za mutaciju nema.
 - `CompositeCommand` za grupirane operacije (npr. "Generate toolpaths" = jedna undo jedinica).
 
-### 4.5 Plugin API — PlasmaCAM.Sdk (točka 5)
+### 4.5 Plugin API — Inostvor.Sdk (točka 5)
 
 ```
-PlasmaCAM.Sdk/
+Inostvor.Sdk/
 ├── IPlugin.cs                         Id, Name, Version, Initialize(IPluginHost)
 ├── IPluginHost.cs                     ono što aplikacija nudi pluginu: logger, settings, registracije
 ├── Import/IImportPlugin.cs            ekstenzije datoteka + factory za IDxfImporter/IGeometryImporter
@@ -179,7 +179,7 @@ PlasmaCAM.Sdk/
 
 Tehnološke odluke (§2 v1.0), NuGet paketi, klasne odgovornosti, MVVM struktura, postprocesorska hijerarhija, testna strategija — bez izmjena, uz gore navedene dopune. Odobrene odluke iz §9 v1.0: SkiaSharp ✔, Dapper ✔, Arc-fitting u V1 ✔, EC300Post : Mach3Post ✔, mm interno ✔.
 
-**Otvoreno prije M0:** konačni naziv aplikacije (namespace lock) — radni naziv ostaje **PlasmaCAM** ako ne kažeš drukčije.
+**Otvoreno prije M0:** konačni naziv aplikacije (namespace lock) — radni naziv ostaje **Inostvor** ako ne kažeš drukčije.
 
 ---
 
@@ -188,7 +188,7 @@ Tehnološke odluke (§2 v1.0), NuGet paketi, klasne odgovornosti, MVVM struktura
 **Arhitektura je ZAMRZNUTA kao Architecture Baseline v1.1.** Sve buduće izmjene
 isključivo kroz ADR zapise u `docs/adr/`.
 
-### 7.1 PlasmaCAM.Benchmarks
+### 7.1 Inostvor.Benchmarks
 
 Zaseban projekt (`benchmarks/`), BenchmarkDotNet, NIJE dio aplikacije. Mjeri:
 DXF import, detekciju kontura, kerf offset, arc fitting, ToolpathGenerator,
@@ -200,3 +200,10 @@ Svaki modul (M1+) dodaje svoje benchmarke zajedno s implementacijom.
 Referentne DXF datoteke za automatske testove, kategorije:
 Simple, Holes, Nested, OpenContours, Decorative, LargeFiles, Invalid, Regression.
 **Politika:** svaki ispravljeni bug dobiva regression DXF + test (vidi tests/TestData/README.md).
+
+## Dopuna plana razvoja (2026-07-11)
+
+- **About dijalog** (budući modul, nakon M8): naziv aplikacije, verzija, godina,
+  autor, autorska prava, kratki opis, pozdravna poruka korisnicima. Ime autora
+  nije dio naziva programa (Inostvor).
+- **Plugin DLL distribucija** postprocesora: vidi ADR-004.

@@ -1,4 +1,4 @@
-# PlasmaCAM
+# Inostvor
 
 Windows desktop CAM aplikacija za CNC plazma rezanje. Potpuno offline.
 
@@ -21,11 +21,11 @@ Windows desktop CAM aplikacija za CNC plazma rezanje. Potpuno offline.
 ili ručno:
 
 ```powershell
-dotnet build PlasmaCAM.sln -c Release
-dotnet test  PlasmaCAM.sln -c Release
+dotnet build Inostvor.sln -c Release
+dotnet test  Inostvor.sln -c Release
 ```
 
-Pokretanje aplikacije: `PlasmaCAM.App` kao startup projekt (x64), F5.
+Pokretanje aplikacije: `Inostvor.App` kao startup projekt (x64), F5.
 
 ## Struktura
 

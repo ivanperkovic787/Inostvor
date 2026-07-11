@@ -32,7 +32,7 @@ s punim testovima, Git repozitorij, Benchmarks projekt, TestData struktura.
    registracija bez ijednog pravila i bez domenskih tipova zahtijevala bi
    placeholder tipove, što krši pravilo "bez TODO/placeholder koda".
    `IValidationRule` + orkestrator dolaze u M3 s prvim geometrijskim pravilima.
-2. **Undo/Redo testovi žive u novom `PlasmaCAM.Core.Tests`** (kod je u Core),
+2. **Undo/Redo testovi žive u novom `Inostvor.Core.Tests`** (kod je u Core),
    ne u ViewModels.Tests kako je plan naveo.
 3. **`Microsoft.Extensions.Logging.Abstractions` umjesto vlastitog `IAppLogger`:**
    standardna apstrakcija, strukturirani logging, nulta cijena vlastitog održavanja.

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Inostvor.Core\Inostvor.Core.csproj" />
+    <ProjectReference Include="..\Inostvor.Sdk\Inostvor.Sdk.csproj" />
+  </ItemGroup>
+</Project>

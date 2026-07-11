@@ -1,6 +1,6 @@
-# PlasmaCAM build skripta - restore + build + test, staje na prvoj gresci.
+# Inostvor build skripta - restore + build + test, staje na prvoj gresci.
 $ErrorActionPreference = "Stop"
-$sln = Join-Path $PSScriptRoot "..\PlasmaCAM.sln"
+$sln = Join-Path $PSScriptRoot "..\Inostvor.sln"
 
 Write-Host "== Restore ==" -ForegroundColor Cyan
 dotnet restore $sln

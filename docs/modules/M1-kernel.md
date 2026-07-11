@@ -2,7 +2,7 @@
 
 ## Cilj
 
-Matematička jezgra PlasmaCAM-a: primitivi, transformacije, intersekcije, AABB,
+Matematička jezgra Inostvor-a: primitivi, transformacije, intersekcije, AABB,
 prostorni indeks i Tolerance sustav (ADR-001). Sve ostalo u sustavu gradi se na
 ovom modulu — naglasak na numeričkoj stabilnosti i pokrivenosti testovima.
 
@@ -61,7 +61,7 @@ matrice s round-trip inverzijom.
 
 `IntersectionBenchmarks` (line-line/line-arc/arc-arc), `SelfIntersectionBenchmarks`
 (100/1000/5000 segmenata), `AabbTreeBenchmarks` (build + query vs linearni baseline,
-1k/10k kutija). Pokretanje: `dotnet run -c Release --project benchmarks/PlasmaCAM.Benchmarks`.
+1k/10k kutija). Pokretanje: `dotnet run -c Release --project benchmarks/Inostvor.Benchmarks`.
 
 ## Definition of Done
 

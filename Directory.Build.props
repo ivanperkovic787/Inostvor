@@ -9,8 +9,8 @@
     <AnalysisLevel>latest-recommended</AnalysisLevel>
     <Deterministic>true</Deterministic>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
-    <Company>PlasmaCAM</Company>
-    <Product>PlasmaCAM</Product>
+    <Company>Inostvor</Company>
+    <Product>Inostvor</Product>
     <Version>0.1.0-m0</Version>
   </PropertyGroup>
 </Project>
