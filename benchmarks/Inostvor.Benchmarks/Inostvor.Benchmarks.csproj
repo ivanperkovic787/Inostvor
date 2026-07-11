@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\Inostvor.Core\Inostvor.Core.csproj" />
     <ProjectReference Include="..\..\src\Inostvor.Import.NetDxf\Inostvor.Import.NetDxf.csproj" />
     <ProjectReference Include="..\..\src\Inostvor.Geometry\Inostvor.Geometry.csproj" />
+    <ProjectReference Include="..\..\src\Inostvor.Rendering\Inostvor.Rendering.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />

@@ -11,11 +11,9 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Shouldly" />
     <PackageReference Include="coverlet.collector" />
-    <PackageReference Include="NSubstitute" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Inostvor.ViewModels\Inostvor.ViewModels.csproj" />
+    <ProjectReference Include="..\..\src\Inostvor.Rendering\Inostvor.Rendering.csproj" />
     <ProjectReference Include="..\..\src\Inostvor.Geometry\Inostvor.Geometry.csproj" />
   </ItemGroup>
 </Project>

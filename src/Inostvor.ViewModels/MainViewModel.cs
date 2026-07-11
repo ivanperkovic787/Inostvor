@@ -5,6 +5,7 @@ using Inostvor.Core.Abstractions;
 using Inostvor.Core.Model.Geometry;
 using Inostvor.Core.Model.Import;
 using Inostvor.Core.Model.Validation;
+using Inostvor.Rendering.Scene;
 
 namespace Inostvor.ViewModels;
 
@@ -29,6 +30,31 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private GeometryPipelineResult? _lastPipeline;
+
+    [ObservableProperty]
+    private IssueDisplay? _selectedIssue;
+
+    [ObservableProperty]
+    private IReadOnlyList<IssueDisplay> _issues = [];
+
+    public ViewportViewModel Viewport { get; } = new();
+
+    partial void OnSelectedIssueChanged(IssueDisplay? value)
+    {
+        if (value is not null)
+        {
+            Viewport.ZoomToIssue(value.Issue);
+        }
+    }
+
+    partial void OnLastPipelineChanged(GeometryPipelineResult? value)
+    {
+        Issues = value is null ? [] : value.Report.Issues.Select(i => new IssueDisplay(i)).ToList();
+        SelectedIssue = null;
+        Viewport.SetScene(value is null
+            ? RenderScene.Empty
+            : new RenderScene(value.Contours, value.Report.Issues));
+    }
 
     public MainViewModel(
         IUndoService undoService,

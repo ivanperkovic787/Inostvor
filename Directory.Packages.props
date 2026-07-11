@@ -27,5 +27,7 @@
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.14.0" />
     <PackageVersion Include="netDxf" Version="3.0.1" />
+    <PackageVersion Include="SkiaSharp" Version="2.88.9" />
+    <PackageVersion Include="SkiaSharp.Views.WinUI" Version="2.88.9" />
   </ItemGroup>
 </Project>
