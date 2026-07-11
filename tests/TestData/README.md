@@ -26,3 +26,17 @@ CAM pipeline, postprocesori) i za benchmarke. Testovi ih učitavaju relativno
 3. Datoteke se dodaju u modulu koji ih prvi konzumira (M2+), generirane poznatim
    alatom (AutoCAD/QCAD/LibreCAD) ili programski — nikad ručno editirane bez verifikacije.
 4. DXF-ovi su binarno nepromjenjivi nakon dodavanja — promjena ulaza mijenja smisao testa.
+
+## Provenijencija datoteka (M2)
+
+Sve `.dxf` datoteke u ovom trenutku su **sintetske**, generirane bibliotekom
+**ezdxf 1.4.4** (spec-compliant DXF writer) i validirane round-trip učitavanjem.
+Pokrivaju DXF verzije R2000–R2018 (+ namjerni R12 u `Invalid/`), sve podržane
+entitete, INSERT transformacije (skala/rotacija/zrcaljenje/neuniformna skala,
+3 razine ugnježđenja), layer nasljeđivanje, jedinice i degenerirane ulaze.
+
+**Native exporti iz komercijalnih CAD alata (AutoCAD, SolidWorks, Fusion 360,
+LibreCAD, QCAD…) dodaju se u `ByVendor/<alat>/` kad budu dostupni** — sintetske
+datoteke ne mogu reproducirati vendor-specifične quirkove (redoslijed sekcija,
+proxy entiteti, nestandardna zaglavlja). Svaka nova vendor datoteka dobiva
+regresijski test u `PlasmaCAM.Import.NetDxf.Tests`.

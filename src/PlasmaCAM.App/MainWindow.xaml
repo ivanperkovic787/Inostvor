@@ -7,14 +7,35 @@
 
   <Grid>
     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
       <RowDefinition Height="Auto" />
       <RowDefinition Height="190" MinHeight="90" />
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
+    <!-- ======== Toolbar ======== -->
+    <StackPanel
+        Grid.Row="0" Orientation="Horizontal" Spacing="4"
+        Padding="8,6,8,6"
+        Background="{ThemeResource LayerFillColorDefaultBrush}">
+      <Button Command="{x:Bind ViewModel.OpenDxfCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <FontIcon Glyph="&#xE8E5;" FontSize="14" />
+          <TextBlock Text="Otvori DXF" />
+        </StackPanel>
+      </Button>
+      <AppBarSeparator />
+      <Button Command="{x:Bind ViewModel.UndoCommand}" ToolTipService.ToolTip="Poništi (Ctrl+Z)">
+        <FontIcon Glyph="&#xE7A7;" FontSize="14" />
+      </Button>
+      <Button Command="{x:Bind ViewModel.RedoCommand}" ToolTipService.ToolTip="Ponovi (Ctrl+Y)">
+        <FontIcon Glyph="&#xE7A6;" FontSize="14" />
+      </Button>
+    </StackPanel>
+
     <!-- ======== Gornji dio: Explorer | Canvas | Properties ======== -->
-    <Grid Grid.Row="0">
+    <Grid Grid.Row="1">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="280" MinWidth="180" />
         <ColumnDefinition Width="Auto" />
@@ -62,10 +83,10 @@
       </Grid>
     </Grid>
 
-    <toolkit:GridSplitter Grid.Row="1" Height="6" />
+    <toolkit:GridSplitter Grid.Row="2" Height="6" />
 
     <!-- ======== Output Console ======== -->
-    <Grid Grid.Row="2" Background="{ThemeResource LayerFillColorDefaultBrush}">
+    <Grid Grid.Row="3" Background="{ThemeResource LayerFillColorDefaultBrush}">
       <Grid.RowDefinitions>
         <RowDefinition Height="Auto" />
         <RowDefinition Height="*" />
@@ -111,7 +132,7 @@
     </Grid>
 
     <!-- ======== Status traka ======== -->
-    <Grid Grid.Row="3" Background="{ThemeResource AccentFillColorDefaultBrush}">
+    <Grid Grid.Row="4" Background="{ThemeResource AccentFillColorDefaultBrush}">
       <TextBlock
           Margin="12,3,12,3" FontSize="12"
           Foreground="{ThemeResource TextOnAccentFillColorPrimaryBrush}"

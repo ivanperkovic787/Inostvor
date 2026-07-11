@@ -8,6 +8,9 @@ using PlasmaCAM.App.Logging;
 using PlasmaCAM.App.Services;
 using PlasmaCAM.Core.Abstractions;
 using PlasmaCAM.Core.Services;
+using PlasmaCAM.Import.NetDxf;
+using PlasmaCAM.Sdk;
+using PlasmaCAM.Sdk.Import;
 using PlasmaCAM.ViewModels;
 using Serilog;
 
@@ -52,6 +55,15 @@ public partial class App : Application
             new DispatcherService(DispatcherQueue.GetForCurrentThread()));
         builder.Services.AddSingleton<IMessenger>(messenger);
         builder.Services.AddSingleton<IUndoService, UndoRedoService>();
+
+        // Import (M2): ugrađeni netDxf importer registrira se kroz plugin kontrakt —
+        // isti put kojim će ići vanjski plugini (Baseline v1.1, §4.5).
+        builder.Services.AddSingleton<IPluginHost, PluginHost>();
+        builder.Services.AddSingleton<IImportPlugin, NetDxfImportPlugin>();
+        builder.Services.AddSingleton<IDxfImporter>(sp => sp.GetRequiredService<IImportPlugin>().CreateImporter());
+        builder.Services.AddSingleton<IFilePickerService>(
+            new FilePickerService(() => WinRT.Interop.WindowNative.GetWindowHandle(((App)Current)._window!)));
+
         builder.Services.AddSingleton<ConsoleViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
 
@@ -60,8 +72,15 @@ public partial class App : Application
 
         var logger = _host.Services.GetRequiredService<ILogger<App>>();
         logger.LogInformation(
-            "PlasmaCAM {Version} pokrenut (M0 skeleton).",
+            "PlasmaCAM {Version} pokrenut.",
             typeof(App).Assembly.GetName().Version);
+
+        // Inicijalizacija pluginova (za sada samo ugrađeni import plugin).
+        var pluginHost = _host.Services.GetRequiredService<IPluginHost>();
+        foreach (var plugin in _host.Services.GetServices<IImportPlugin>())
+        {
+            plugin.Initialize(pluginHost);
+        }
 
         _window = new MainWindow();
         _window.Closed += (_, _) =>

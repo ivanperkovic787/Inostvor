@@ -13,6 +13,9 @@ public static class Tolerance
     /// <summary>Kutna tolerancija za usporedbe kutova i testove paralelnosti. [rad]</summary>
     public const double Angular = 1e-9;
 
+    /// <summary>Relativna tolerancija za usporedbe skaliranih veličina (npr. konformnost matrica). Bezdimenzionalna.</summary>
+    public const double Relative = 1e-9;
+
     /// <summary>
     /// Zadana tolerancija spajanja kontura (gap između krajeva segmenata koji se još
     /// smatraju povezanima). Podesiva po dokumentu; ovo je samo default. [mm]
