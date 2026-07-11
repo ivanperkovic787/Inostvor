@@ -12,6 +12,7 @@
     <ProjectReference Include="..\..\src\PlasmaCAM.Kernel\PlasmaCAM.Kernel.csproj" />
     <ProjectReference Include="..\..\src\PlasmaCAM.Core\PlasmaCAM.Core.csproj" />
     <ProjectReference Include="..\..\src\PlasmaCAM.Import.NetDxf\PlasmaCAM.Import.NetDxf.csproj" />
+    <ProjectReference Include="..\..\src\PlasmaCAM.Geometry\PlasmaCAM.Geometry.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />

@@ -2,7 +2,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 using PlasmaCAM.Core.Abstractions;
+using PlasmaCAM.Core.Model.Geometry;
 using PlasmaCAM.Core.Model.Import;
+using PlasmaCAM.Core.Model.Validation;
 
 namespace PlasmaCAM.ViewModels;
 
@@ -16,6 +18,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IUndoService _undoService;
     private readonly IDxfImporter _importer;
     private readonly IFilePickerService _filePicker;
+    private readonly IGeometryPipeline _pipeline;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -24,20 +27,26 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty]
     private ImportResult? _lastImport;
 
+    [ObservableProperty]
+    private GeometryPipelineResult? _lastPipeline;
+
     public MainViewModel(
         IUndoService undoService,
         IDxfImporter importer,
         IFilePickerService filePicker,
+        IGeometryPipeline pipeline,
         ILogger<MainViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(undoService);
         ArgumentNullException.ThrowIfNull(importer);
         ArgumentNullException.ThrowIfNull(filePicker);
+        ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(logger);
 
         _undoService = undoService;
         _importer = importer;
         _filePicker = filePicker;
+        _pipeline = pipeline;
         _logger = logger;
 
         _undoService.StateChanged += (_, _) =>
@@ -88,8 +97,37 @@ public sealed partial class MainViewModel : ObservableObject
             _logger.LogWarning("… i još {More} upozorenja (puni popis u log datoteci).", result.Warnings.Count - 20);
         }
 
+        // M3: detekcija kontura + klasifikacija + validacija.
+        var pipeline = await Task.Run(() => _pipeline.Process(result.Entities, ContourBuildSettings.Default)).ConfigureAwait(true);
+        LastPipeline = pipeline;
+
+        var outer = pipeline.Contours.Count(c => c.Kind == ContourKind.Outer);
+        var holes = pipeline.Contours.Count(c => c.Kind == ContourKind.Hole);
+        var open = pipeline.Contours.Count(c => c.Kind == ContourKind.Open);
+        _logger.LogInformation(
+            "Konture: {Total} ({Outer} vanjskih, {Holes} rupa, {Open} otvorenih); automatskih spojeva: {Joins}. Validacija: {Errors} grešaka, {Warnings} upozorenja, {Infos} informacija.",
+            pipeline.Contours.Count, outer, holes, open, pipeline.Joins.Count,
+            pipeline.Report.ErrorCount, pipeline.Report.WarningCount, pipeline.Report.InfoCount);
+
+        foreach (var issue in pipeline.Report.Issues.Take(30))
+        {
+            var level = issue.Severity switch
+            {
+                ValidationSeverity.Error => LogLevel.Error,
+                ValidationSeverity.Warning => LogLevel.Warning,
+                _ => LogLevel.Information,
+            };
+            _logger.Log(level, "[{Code}] {Message}", issue.Code, issue.Message);
+        }
+
+        if (pipeline.Report.Issues.Count > 30)
+        {
+            _logger.LogInformation("… i još {More} nalaza validacije.", pipeline.Report.Issues.Count - 30);
+        }
+
         StatusText = FormattableString.Invariant(
-            $"Učitano: {Path.GetFileName(path)} — {result.Entities.Count} entiteta, {result.TotalSegmentCount} segmenata");
+            $"Učitano: {Path.GetFileName(path)} — {pipeline.Contours.Count} kontura ({outer} vanjskih, {holes} rupa, {open} otvorenih)"
+            + (pipeline.Report.HasErrors ? FormattableString.Invariant($", {pipeline.Report.ErrorCount} GREŠAKA") : string.Empty));
     }
 
     private bool CanUndo() => _undoService.CanUndo;

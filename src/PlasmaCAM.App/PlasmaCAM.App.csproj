@@ -18,6 +18,7 @@
     <ProjectReference Include="..\PlasmaCAM.Core\PlasmaCAM.Core.csproj" />
     <ProjectReference Include="..\PlasmaCAM.ViewModels\PlasmaCAM.ViewModels.csproj" />
     <ProjectReference Include="..\PlasmaCAM.Import.NetDxf\PlasmaCAM.Import.NetDxf.csproj" />
+    <ProjectReference Include="..\PlasmaCAM.Geometry\PlasmaCAM.Geometry.csproj" />
   </ItemGroup>
 
   <ItemGroup>

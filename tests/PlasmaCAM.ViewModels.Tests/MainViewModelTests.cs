@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using PlasmaCAM.Core.Abstractions;
 using PlasmaCAM.Core.Model.Import;
+using PlasmaCAM.Core.Model.Validation;
 using Shouldly;
 using Xunit;
 
@@ -12,8 +13,14 @@ public sealed class MainViewModelTests
     private readonly IUndoService _undo = Substitute.For<IUndoService>();
     private readonly IDxfImporter _importer = Substitute.For<IDxfImporter>();
     private readonly IFilePickerService _picker = Substitute.For<IFilePickerService>();
+    private readonly IGeometryPipeline _pipeline = Substitute.For<IGeometryPipeline>();
 
-    private MainViewModel Create() => new(_undo, _importer, _picker, NullLogger<MainViewModel>.Instance);
+    private MainViewModel Create()
+    {
+        _pipeline.Process(Arg.Any<IReadOnlyList<ImportedEntity>>(), Arg.Any<Core.Model.Geometry.ContourBuildSettings>())
+            .Returns(new GeometryPipelineResult([], [], new ValidationReport([])));
+        return new MainViewModel(_undo, _importer, _picker, _pipeline, NullLogger<MainViewModel>.Instance);
+    }
 
     [Fact]
     public async Task OpenDxf_KorisnikOdustao_ImporterSeNePoziva()
@@ -39,6 +46,8 @@ public sealed class MainViewModelTests
         await vm.OpenDxfCommand.ExecuteAsync(null);
 
         vm.LastImport.ShouldBeNull();
+        vm.LastPipeline.ShouldBeNull();
+        _pipeline.DidNotReceive().Process(Arg.Any<IReadOnlyList<ImportedEntity>>(), Arg.Any<Core.Model.Geometry.ContourBuildSettings>());
         vm.StatusText.ShouldContain("neuspješan");
     }
 
@@ -64,7 +73,9 @@ public sealed class MainViewModelTests
         await vm.OpenDxfCommand.ExecuteAsync(null);
 
         vm.LastImport.ShouldBeSameAs(ok);
+        vm.LastPipeline.ShouldNotBeNull();
+        _pipeline.Received(1).Process(ok.Entities, Arg.Any<Core.Model.Geometry.ContourBuildSettings>());
         vm.StatusText.ShouldContain("dobar.dxf");
-        vm.StatusText.ShouldContain("1 entiteta");
+        vm.StatusText.ShouldContain("kontura");
     }
 }

@@ -8,9 +8,13 @@ using PlasmaCAM.App.Logging;
 using PlasmaCAM.App.Services;
 using PlasmaCAM.Core.Abstractions;
 using PlasmaCAM.Core.Services;
+using PlasmaCAM.Geometry.Contours;
+using PlasmaCAM.Geometry.Rules;
+using PlasmaCAM.Geometry.Validation;
 using PlasmaCAM.Import.NetDxf;
 using PlasmaCAM.Sdk;
 using PlasmaCAM.Sdk.Import;
+using PlasmaCAM.Sdk.Validation;
 using PlasmaCAM.ViewModels;
 using Serilog;
 
@@ -63,6 +67,18 @@ public partial class App : Application
         builder.Services.AddSingleton<IDxfImporter>(sp => sp.GetRequiredService<IImportPlugin>().CreateImporter());
         builder.Services.AddSingleton<IFilePickerService>(
             new FilePickerService(() => WinRT.Interop.WindowNative.GetWindowHandle(((App)Current)._window!)));
+
+        // Geometrija (M3): detekcija kontura, klasifikacija, validacija.
+        // Ugrađena pravila registriraju se kroz isti IValidationRule kontrakt kao buduća plugin pravila.
+        builder.Services.AddSingleton<IContourBuilder, ContourBuilder>();
+        builder.Services.AddSingleton<IContourClassifier, ContourClassifier>();
+        builder.Services.AddSingleton<IValidationRule, OpenContourRule>();
+        builder.Services.AddSingleton<IValidationRule, JoinedGapsRule>();
+        builder.Services.AddSingleton<IValidationRule, SelfIntersectionRule>();
+        builder.Services.AddSingleton<IValidationRule, DuplicateGeometryRule>();
+        builder.Services.AddSingleton<IValidationRule>(_ => new ZeroLengthSegmentRule());
+        builder.Services.AddSingleton<IToolpathValidator, ToolpathValidator>();
+        builder.Services.AddSingleton<IGeometryPipeline, GeometryPipeline>();
 
         builder.Services.AddSingleton<ConsoleViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
