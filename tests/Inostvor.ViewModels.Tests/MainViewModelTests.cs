@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
 using Inostvor.Core.Abstractions;
 using Inostvor.Core.Model.Import;
+using Inostvor.Core.Model.Toolpath;
 using Inostvor.Core.Model.Validation;
 using Shouldly;
 using Xunit;
@@ -14,12 +15,15 @@ public sealed class MainViewModelTests
     private readonly IDxfImporter _importer = Substitute.For<IDxfImporter>();
     private readonly IFilePickerService _picker = Substitute.For<IFilePickerService>();
     private readonly IGeometryPipeline _pipeline = Substitute.For<IGeometryPipeline>();
+    private readonly IToolpathGenerator _toolpath = Substitute.For<IToolpathGenerator>();
 
     private MainViewModel Create()
     {
         _pipeline.Process(Arg.Any<IReadOnlyList<ImportedEntity>>(), Arg.Any<Core.Model.Geometry.ContourBuildSettings>())
             .Returns(new GeometryPipelineResult([], [], new ValidationReport([])));
-        return new MainViewModel(_undo, _importer, _picker, _pipeline, NullLogger<MainViewModel>.Instance);
+        _toolpath.Generate(Arg.Any<IReadOnlyList<Core.Model.Geometry.Contour>>(), Arg.Any<TechnologySettings>())
+            .Returns(ToolpathProgram.Empty);
+        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, NullLogger<MainViewModel>.Instance);
     }
 
     [Fact]
@@ -74,6 +78,7 @@ public sealed class MainViewModelTests
 
         vm.LastImport.ShouldBeSameAs(ok);
         vm.LastPipeline.ShouldNotBeNull();
+        vm.LastToolpath.ShouldNotBeNull();
         _pipeline.Received(1).Process(ok.Entities, Arg.Any<Core.Model.Geometry.ContourBuildSettings>());
         vm.StatusText.ShouldContain("dobar.dxf");
         vm.StatusText.ShouldContain("kontura");

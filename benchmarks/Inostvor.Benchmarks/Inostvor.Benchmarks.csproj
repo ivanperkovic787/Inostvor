@@ -14,6 +14,7 @@
     <ProjectReference Include="..\..\src\Inostvor.Import.NetDxf\Inostvor.Import.NetDxf.csproj" />
     <ProjectReference Include="..\..\src\Inostvor.Geometry\Inostvor.Geometry.csproj" />
     <ProjectReference Include="..\..\src\Inostvor.Rendering\Inostvor.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\Inostvor.Cam\Inostvor.Cam.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />

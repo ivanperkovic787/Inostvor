@@ -7,6 +7,10 @@ using Microsoft.UI.Xaml;
 using Inostvor.App.Logging;
 using Inostvor.App.Services;
 using Inostvor.Core.Abstractions;
+using Inostvor.Cam.Fitting;
+using Inostvor.Cam.Generation;
+using Inostvor.Cam.Leads;
+using Inostvor.Cam.Offset;
 using Inostvor.Core.Services;
 using Inostvor.Geometry.Contours;
 using Inostvor.Geometry.Rules;
@@ -14,6 +18,7 @@ using Inostvor.Geometry.Validation;
 using Inostvor.Import.NetDxf;
 using Inostvor.Sdk;
 using Inostvor.Sdk.Import;
+using Inostvor.Sdk.Cam;
 using Inostvor.Sdk.Validation;
 using Inostvor.ViewModels;
 using Serilog;
@@ -79,6 +84,16 @@ public partial class App : Application
         builder.Services.AddSingleton<IValidationRule>(_ => new ZeroLengthSegmentRule());
         builder.Services.AddSingleton<IToolpathValidator, ToolpathValidator>();
         builder.Services.AddSingleton<IGeometryPipeline, GeometryPipeline>();
+
+        // CAM (M5): modularne operacije kroz sučelja — svaka zamjenjiva bez izmjene jezgre.
+        builder.Services.AddSingleton<IKerfOffsetService, KerfOffsetService>();
+        builder.Services.AddSingleton<IArcFitter, ArcFitter>();
+        builder.Services.AddSingleton<ILeadStrategy, LineLeadStrategy>();
+        builder.Services.AddSingleton<ILeadStrategy, ArcLeadStrategy>();
+        builder.Services.AddSingleton<LeadGeneratorService>();
+        builder.Services.AddSingleton<IOvercutService, OvercutService>();
+        builder.Services.AddSingleton<ICutOrderStrategy, DefaultCutOrderStrategy>();
+        builder.Services.AddSingleton<IToolpathGenerator, ToolpathGenerator>();
 
         builder.Services.AddSingleton<ConsoleViewModel>();
         builder.Services.AddSingleton<MainViewModel>();

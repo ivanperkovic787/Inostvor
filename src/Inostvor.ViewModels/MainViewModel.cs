@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Inostvor.Core.Abstractions;
 using Inostvor.Core.Model.Geometry;
 using Inostvor.Core.Model.Import;
+using Inostvor.Core.Model.Toolpath;
 using Inostvor.Core.Model.Validation;
 using Inostvor.Rendering.Scene;
 
@@ -20,6 +21,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IDxfImporter _importer;
     private readonly IFilePickerService _filePicker;
     private readonly IGeometryPipeline _pipeline;
+    private readonly IToolpathGenerator _toolpathGenerator;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -30,6 +32,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     [ObservableProperty]
     private GeometryPipelineResult? _lastPipeline;
+
+    [ObservableProperty]
+    private ToolpathProgram? _lastToolpath;
 
     [ObservableProperty]
     private IssueDisplay? _selectedIssue;
@@ -61,18 +66,21 @@ public sealed partial class MainViewModel : ObservableObject
         IDxfImporter importer,
         IFilePickerService filePicker,
         IGeometryPipeline pipeline,
+        IToolpathGenerator toolpathGenerator,
         ILogger<MainViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(undoService);
         ArgumentNullException.ThrowIfNull(importer);
         ArgumentNullException.ThrowIfNull(filePicker);
         ArgumentNullException.ThrowIfNull(pipeline);
+        ArgumentNullException.ThrowIfNull(toolpathGenerator);
         ArgumentNullException.ThrowIfNull(logger);
 
         _undoService = undoService;
         _importer = importer;
         _filePicker = filePicker;
         _pipeline = pipeline;
+        _toolpathGenerator = toolpathGenerator;
         _logger = logger;
 
         _undoService.StateChanged += (_, _) =>
@@ -154,6 +162,23 @@ public sealed partial class MainViewModel : ObservableObject
         StatusText = FormattableString.Invariant(
             $"Učitano: {Path.GetFileName(path)} — {pipeline.Contours.Count} kontura ({outer} vanjskih, {holes} rupa, {open} otvorenih)"
             + (pipeline.Report.HasErrors ? FormattableString.Invariant($", {pipeline.Report.ErrorCount} GREŠAKA") : string.Empty));
+
+        // M5: putanja se generira samo kad validacija nema grešaka.
+        if (pipeline.Report.HasErrors)
+        {
+            LastToolpath = null;
+            _logger.LogWarning("Putanja NIJE generirana — validacija ima {Errors} grešaka.", pipeline.Report.ErrorCount);
+            return;
+        }
+
+        var toolpath = await Task.Run(() => _toolpathGenerator.Generate(pipeline.Contours, TechnologySettings.Default)).ConfigureAwait(true);
+        LastToolpath = toolpath;
+        _logger.LogInformation(
+            "Putanja: {Sequences} sekvenci (pierce), rez {CutLength:0.#} mm ({CutTime:0.#} s), brzi hodovi {RapidLength:0.#} mm ({RapidTime:0.#} s), probijanja {PierceTime:0.#} s — ukupno {Total:0.#} s.",
+            toolpath.Sequences.Count,
+            toolpath.Statistics.CutLength, toolpath.Statistics.CutTimeSeconds,
+            toolpath.Statistics.RapidLength, toolpath.Statistics.RapidTimeSeconds,
+            toolpath.Statistics.PierceTimeSeconds, toolpath.Statistics.TotalTimeSeconds);
     }
 
     private bool CanUndo() => _undoService.CanUndo;

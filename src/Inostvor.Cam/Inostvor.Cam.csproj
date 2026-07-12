@@ -8,4 +8,7 @@
     <ProjectReference Include="..\Inostvor.Geometry\Inostvor.Geometry.csproj" />
     <ProjectReference Include="..\Inostvor.Sdk\Inostvor.Sdk.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Clipper2" />
+  </ItemGroup>
 </Project>
