@@ -11,6 +11,11 @@ public sealed record MachineProfile
 {
     public required string Name { get; init; }
 
+    public string Manufacturer { get; init; } = "";
+
+    /// <summary>Ima li stroj THC (torch height control).</summary>
+    public bool HasThc { get; init; }
+
     /// <summary>Id postprocesora čijim dijalektom stroj govori (npr. "inostvor.post.mach3").</summary>
     public required string PostProcessorId { get; init; }
 
