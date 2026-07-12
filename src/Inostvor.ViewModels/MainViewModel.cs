@@ -44,6 +44,13 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ViewportViewModel Viewport { get; } = new();
 
+    public SimulationViewModel Simulation { get; } = new();
+
+    partial void OnLastToolpathChanged(ToolpathProgram? value)
+    {
+        Simulation.SetProgram(value);
+    }
+
     partial void OnSelectedIssueChanged(IssueDisplay? value)
     {
         if (value is not null)

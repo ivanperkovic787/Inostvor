@@ -5,6 +5,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Inostvor.Kernel\Inostvor.Kernel.csproj" />
     <ProjectReference Include="..\Inostvor.Core\Inostvor.Core.csproj" />
+    <ProjectReference Include="..\Inostvor.Cam\Inostvor.Cam.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="SkiaSharp" />

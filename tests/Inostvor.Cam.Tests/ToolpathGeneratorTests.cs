@@ -17,7 +17,7 @@ public sealed class ToolpathGeneratorTests
         new ArcFitter(),
         new LeadGeneratorService([new LineLeadStrategy(), new ArcLeadStrategy()]),
         new OvercutService(),
-        new DefaultCutOrderStrategy());
+        new CutOrderStrategyProvider([new DefaultCutOrderStrategy(), new NearestNeighborCutOrderStrategy()]));
 
     [Fact]
     public void PlocaSRupom_DvijeSekvence_RupaPrva_TocneStrane()

@@ -207,3 +207,6 @@ Simple, Holes, Nested, OpenContours, Decorative, LargeFiles, Invalid, Regression
   autor, autorska prava, kratki opis, pozdravna poruka korisnicima. Ime autora
   nije dio naziva programa (Inostvor).
 - **Plugin DLL distribucija** postprocesora: vidi ADR-004.
+- **Grafički editor postprocesora** (nakon V1): vizualno uređivanje dijalekta s
+  live pregledom generiranog G-koda. Preduvjet ugrađen u dizajn M7: deklarativni
+  opis dijalekta (predlošci kao podaci) umjesto isključivo koda.

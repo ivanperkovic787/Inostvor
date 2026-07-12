@@ -23,25 +23,25 @@ public sealed class ToolpathGenerator : IToolpathGenerator
     private readonly IArcFitter _arcFitter;
     private readonly LeadGeneratorService _leads;
     private readonly IOvercutService _overcut;
-    private readonly ICutOrderStrategy _cutOrder;
+    private readonly ICutOrderStrategyProvider _cutOrderProvider;
 
     public ToolpathGenerator(
         IKerfOffsetService kerf,
         IArcFitter arcFitter,
         LeadGeneratorService leads,
         IOvercutService overcut,
-        ICutOrderStrategy cutOrder)
+        ICutOrderStrategyProvider cutOrderProvider)
     {
         ArgumentNullException.ThrowIfNull(kerf);
         ArgumentNullException.ThrowIfNull(arcFitter);
         ArgumentNullException.ThrowIfNull(leads);
         ArgumentNullException.ThrowIfNull(overcut);
-        ArgumentNullException.ThrowIfNull(cutOrder);
+        ArgumentNullException.ThrowIfNull(cutOrderProvider);
         _kerf = kerf;
         _arcFitter = arcFitter;
         _leads = leads;
         _overcut = overcut;
-        _cutOrder = cutOrder;
+        _cutOrderProvider = cutOrderProvider;
     }
 
     public ToolpathProgram Generate(IReadOnlyList<Contour> contours, TechnologySettings technology)
@@ -67,7 +67,7 @@ public sealed class ToolpathGenerator : IToolpathGenerator
             }
         }
 
-        var ordered = _cutOrder.Order(sequences, contours);
+        var ordered = _cutOrderProvider.Resolve(technology.CutOrderStrategyId).Order(sequences, contours);
 
         // Brzi pomaci: ishodište stroja → pierce 1 → … (eksplicitno, za simulaciju).
         var rapids = new List<RapidMove>(ordered.Count);

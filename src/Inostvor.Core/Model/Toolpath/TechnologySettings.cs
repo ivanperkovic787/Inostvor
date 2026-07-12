@@ -64,5 +64,8 @@ public sealed record TechnologySettings
     /// <summary>Tolerancija tessellacije prije Clipper offseta. [mm]</summary>
     public double OffsetTessellationTolerance { get; init; } = 0.01;
 
+    /// <summary>Id strategije redoslijeda rezanja (vidi ICutOrderStrategy).</summary>
+    public string CutOrderStrategyId { get; init; } = "bottom-to-top";
+
     public static TechnologySettings Default { get; } = new();
 }

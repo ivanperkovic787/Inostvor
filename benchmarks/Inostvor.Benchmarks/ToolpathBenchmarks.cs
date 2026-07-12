@@ -49,7 +49,7 @@ public class ToolpathBenchmarks
             new ArcFitter(),
             new LeadGeneratorService([new LineLeadStrategy(), new ArcLeadStrategy()]),
             new OvercutService(),
-            new DefaultCutOrderStrategy());
+            new CutOrderStrategyProvider([new DefaultCutOrderStrategy(), new NearestNeighborCutOrderStrategy()]));
     }
 
     [Benchmark]

@@ -6,6 +6,7 @@
     <ProjectReference Include="..\Inostvor.Core\Inostvor.Core.csproj" />
     <ProjectReference Include="..\Inostvor.Sdk\Inostvor.Sdk.csproj" />
     <ProjectReference Include="..\Inostvor.Rendering\Inostvor.Rendering.csproj" />
+    <ProjectReference Include="..\Inostvor.Cam\Inostvor.Cam.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

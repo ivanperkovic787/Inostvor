@@ -13,6 +13,8 @@ namespace Inostvor.Cam.Generation;
 /// </summary>
 public sealed class DefaultCutOrderStrategy : ICutOrderStrategy
 {
+    public string Id => "bottom-to-top";
+
     public IReadOnlyList<CutSequence> Order(IReadOnlyList<CutSequence> sequences, IReadOnlyList<Contour> contours)
     {
         ArgumentNullException.ThrowIfNull(sequences);

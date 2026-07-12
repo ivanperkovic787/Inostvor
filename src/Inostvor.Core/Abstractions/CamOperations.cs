@@ -32,12 +32,24 @@ public interface IOvercutService
 }
 
 /// <summary>
-/// Redoslijed rezanja. V1: deterministički default (rupe prije vanjske konture
-/// istog dijela, dijelovi po poziciji); napredne strategije (M6) kroz isti kontrakt.
+/// Redoslijed rezanja — OTVOREN SKUP strategija (bottom-to-top, nearest-neighbor,
+/// left-to-right, grid, minimal-rapids, custom-user-order…). Nove strategije se
+/// registriraju u DI-ju i biraju po Id-u kroz TechnologySettings — BEZ izmjene
+/// ToolpathGeneratora. Nepromjenjivo pravilo svake strategije: rupe dijela prije
+/// njegove vanjske konture.
 /// </summary>
 public interface ICutOrderStrategy
 {
+    /// <summary>Stabilan identifikator strategije (npr. "bottom-to-top", "nearest-neighbor").</summary>
+    string Id { get; }
+
     IReadOnlyList<CutSequence> Order(IReadOnlyList<CutSequence> sequences, IReadOnlyList<Contour> contours);
+}
+
+/// <summary>Rezolucija strategije redoslijeda po Id-u; nepoznat Id → default (konzervativno).</summary>
+public interface ICutOrderStrategyProvider
+{
+    ICutOrderStrategy Resolve(string strategyId);
 }
 
 /// <summary>Generator cijelog programa: konture + tehnologija → neutralni IR.</summary>

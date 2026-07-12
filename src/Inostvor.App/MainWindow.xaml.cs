@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Inostvor.Kernel.Primitives;
@@ -28,7 +29,41 @@ public sealed partial class MainWindow : Window
 
         // Change-driven invalidacija: canvas se recrtava SAMO kad viewport to zatraži.
         ViewModel.Viewport.RedrawRequested += (_, _) => Canvas.Invalidate();
-        Closed += (_, _) => _renderer.Dispose();
+        ViewModel.Simulation.RedrawRequested += (_, _) => Canvas.Invalidate();
+
+        // Ticker reprodukcije: aktivan ISKLJUČIVO dok simulacija igra (bez praznog hoda).
+        _simulationTicker = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
+        _simulationTicker.Tick += (_, _) => ViewModel.Simulation.Advance(0.033);
+        ViewModel.Simulation.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(SimulationViewModel.IsPlaying))
+            {
+                if (ViewModel.Simulation.IsPlaying)
+                {
+                    _simulationTicker.Start();
+                }
+                else
+                {
+                    _simulationTicker.Stop();
+                }
+            }
+        };
+
+        Closed += (_, _) =>
+        {
+            _simulationTicker.Stop();
+            _renderer.Dispose();
+        };
+    }
+
+    private readonly DispatcherTimer _simulationTicker;
+
+    private void OnSpeedChanged(object sender, SelectionChangedEventArgs e)
+    {
+        ViewModel.Simulation.SpeedMultiplier = SpeedBox.SelectedIndex switch
+        {
+            0 => 0.5, 1 => 1.0, 2 => 2.0, 3 => 5.0, _ => 10.0,
+        };
     }
 
     public MainViewModel ViewModel { get; }
@@ -44,7 +79,10 @@ public sealed partial class MainWindow : Window
 
         var viewport = ViewModel.Viewport;
         viewport.Camera.SetViewportSize(e.Info.Width, e.Info.Height);
-        _renderer.Draw(e.Surface.Canvas, viewport.Camera, viewport.Scene, viewport.HighlightedContourId, viewport.IssueMarker);
+        _renderer.Draw(
+            e.Surface.Canvas, viewport.Camera, viewport.Scene,
+            viewport.HighlightedContourId, viewport.IssueMarker,
+            ViewModel.LastToolpath, ViewModel.Simulation.CurrentState);
     }
 
     private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e) => Canvas.Invalidate();

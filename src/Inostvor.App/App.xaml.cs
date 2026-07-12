@@ -93,6 +93,8 @@ public partial class App : Application
         builder.Services.AddSingleton<LeadGeneratorService>();
         builder.Services.AddSingleton<IOvercutService, OvercutService>();
         builder.Services.AddSingleton<ICutOrderStrategy, DefaultCutOrderStrategy>();
+        builder.Services.AddSingleton<ICutOrderStrategy, NearestNeighborCutOrderStrategy>();
+        builder.Services.AddSingleton<ICutOrderStrategyProvider, CutOrderStrategyProvider>();
         builder.Services.AddSingleton<IToolpathGenerator, ToolpathGenerator>();
 
         builder.Services.AddSingleton<ConsoleViewModel>();

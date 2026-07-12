@@ -102,6 +102,45 @@
                   Command="{x:Bind ViewModel.Viewport.ZoomSelectedCommand}"
                   ToolTipService.ToolTip="Zoom Selected" />
         </StackPanel>
+
+        <!-- Transport simulacije -->
+        <Grid
+            HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
+            Padding="10,6,10,6"
+            Background="#CC252526"
+            Visibility="{x:Bind ViewModel.Simulation.HasProgram, Mode=OneWay}">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+          <Button Grid.Column="0" Padding="10,2" Margin="0,0,4,0"
+                  Command="{x:Bind ViewModel.Simulation.TogglePlayCommand}">
+            <FontIcon Glyph="&#xE768;" FontSize="13" />
+          </Button>
+          <Button Grid.Column="1" Padding="10,2" Margin="0,0,8,0"
+                  Command="{x:Bind ViewModel.Simulation.StopCommand}">
+            <FontIcon Glyph="&#xE71A;" FontSize="13" />
+          </Button>
+          <Slider Grid.Column="2" x:Name="SimSlider" Margin="0,0,8,0"
+                  Minimum="0"
+                  Maximum="{x:Bind ViewModel.Simulation.TotalDuration, Mode=OneWay}"
+                  Value="{x:Bind ViewModel.Simulation.CurrentTime, Mode=TwoWay}"
+                  StepFrequency="0.1" />
+          <ComboBox Grid.Column="3" x:Name="SpeedBox" Margin="0,0,8,0"
+                    SelectedIndex="1" SelectionChanged="OnSpeedChanged" FontSize="12">
+            <ComboBoxItem Content="0.5×" />
+            <ComboBoxItem Content="1×" />
+            <ComboBoxItem Content="2×" />
+            <ComboBoxItem Content="5×" />
+            <ComboBoxItem Content="10×" />
+          </ComboBox>
+          <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="12"
+                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                     Text="{x:Bind ViewModel.Simulation.StatusText, Mode=OneWay}" />
+        </Grid>
       </Grid>
 
       <toolkit:GridSplitter Grid.Column="3" Width="6" />

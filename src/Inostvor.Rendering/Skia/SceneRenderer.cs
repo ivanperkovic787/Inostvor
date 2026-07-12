@@ -1,4 +1,6 @@
+using Inostvor.Cam.Simulation;
 using Inostvor.Core.Model.Geometry;
+using Inostvor.Core.Model.Toolpath;
 using Inostvor.Kernel.Primitives;
 using Inostvor.Rendering.Scene;
 using Inostvor.Rendering.Viewport;
@@ -26,6 +28,22 @@ public sealed class SceneRenderer : IDisposable
     private readonly SKPaint _highlightStroke = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2.8f, Color = HighlightColor };
     private readonly SKPaint _markerStroke = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 1.6f, Color = ErrorMarkerColor };
 
+    private static readonly SKColor RapidColor = new(0x6A, 0x6A, 0x6A);
+    private static readonly SKColor CutPathColor = new(0xE8, 0x4D, 0x4D);      // crvena — rez
+    private static readonly SKColor LeadColor = new(0x98, 0xC3, 0x79);          // zelena — leadovi
+    private static readonly SKColor TorchOnColor = new(0xFF, 0xA5, 0x00);
+    private static readonly SKColor TorchOffColor = new(0x9C, 0x9C, 0x9C);
+
+    private readonly SKPaint _rapidStroke = new()
+    {
+        IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 1.0f, Color = RapidColor,
+        PathEffect = SKPathEffect.CreateDash([6f, 4f], 0f),
+    };
+
+    private readonly SKPaint _toolpathStroke = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 1.6f };
+    private readonly SKPaint _torchFill = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
+    private readonly SKPaint _torchRing = new() { IsAntialias = true, Style = SKPaintStyle.Stroke, StrokeWidth = 2.0f };
+
     private DisplayTessellation _display = new();
     private RenderScene? _displayOwner;
     private readonly List<SceneSegment> _visibleBuffer = new(4096);
@@ -35,7 +53,14 @@ public sealed class SceneRenderer : IDisposable
 
     public int LastDrawnCount { get; private set; }
 
-    public void Draw(SKCanvas canvas, Camera2D camera, RenderScene scene, int highlightedContourId, Point2? issueMarker)
+    public void Draw(
+        SKCanvas canvas,
+        Camera2D camera,
+        RenderScene scene,
+        int highlightedContourId,
+        Point2? issueMarker,
+        ToolpathProgram? toolpath = null,
+        SimulationState? simulation = null)
     {
         ArgumentNullException.ThrowIfNull(canvas);
         ArgumentNullException.ThrowIfNull(camera);
@@ -86,6 +111,16 @@ public sealed class SceneRenderer : IDisposable
             }
         }
 
+        if (toolpath is not null)
+        {
+            DrawToolpath(canvas, camera, toolpath);
+        }
+
+        if (simulation is not null)
+        {
+            DrawTorch(canvas, camera, simulation);
+        }
+
         if (issueMarker is { } marker)
         {
             var p = camera.WorldToScreen(marker);
@@ -95,6 +130,67 @@ public sealed class SceneRenderer : IDisposable
         }
 
         LastDrawnCount = drawn;
+    }
+
+    /// <summary>Overlay putanje iz NEUTRALNOG IR-a: rapids crtkano, leadovi zeleno, rez crveno.</summary>
+    private void DrawToolpath(SKCanvas canvas, Camera2D camera, ToolpathProgram toolpath)
+    {
+        foreach (var rapidMove in toolpath.Rapids)
+        {
+            var a = camera.WorldToScreen(rapidMove.From);
+            var b = camera.WorldToScreen(rapidMove.To);
+            canvas.DrawLine((float)a.X, (float)a.Y, (float)b.X, (float)b.Y, _rapidStroke);
+        }
+
+        foreach (var sequence in toolpath.Sequences)
+        {
+            foreach (var move in sequence.Moves)
+            {
+                _toolpathStroke.Color = move.Kind == MoveKind.Cut || move.Kind == MoveKind.Overcut
+                    ? CutPathColor
+                    : LeadColor;
+                DrawGeometry(canvas, camera, move.Geometry, _toolpathStroke);
+            }
+        }
+    }
+
+    private void DrawTorch(SKCanvas canvas, Camera2D camera, SimulationState state)
+    {
+        var p = camera.WorldToScreen(state.Position);
+        _torchFill.Color = state.TorchOn ? TorchOnColor : TorchOffColor;
+        _torchRing.Color = _torchFill.Color;
+        canvas.DrawCircle((float)p.X, (float)p.Y, 4f, _torchFill);
+        canvas.DrawCircle((float)p.X, (float)p.Y, 8f, _torchRing);
+    }
+
+    private void DrawGeometry(SKCanvas canvas, Camera2D camera, ISegment geometry, SKPaint paint)
+    {
+        switch (geometry)
+        {
+            case LineSeg line:
+            {
+                var a = camera.WorldToScreen(line.StartPoint);
+                var b = camera.WorldToScreen(line.EndPoint);
+                canvas.DrawLine((float)a.X, (float)a.Y, (float)b.X, (float)b.Y, paint);
+                break;
+            }
+
+            case ArcSeg arc:
+            {
+                // Toolpath overlay nije u display cacheu (mijenja se s tehnologijom, ne sa scenom) —
+                // izravna tessellacija po zoomu; broj lukova putanje je malen u odnosu na scenu.
+                var points = Kernel.Tessellation.TessellateArc(arc, DisplayTessellation.WorldChordTolerance(camera.Scale));
+                var previous = camera.WorldToScreen(points[0]);
+                for (var i = 1; i < points.Count; i++)
+                {
+                    var current = camera.WorldToScreen(points[i]);
+                    canvas.DrawLine((float)previous.X, (float)previous.Y, (float)current.X, (float)current.Y, paint);
+                    previous = current;
+                }
+
+                break;
+            }
+        }
     }
 
     private void DrawSegment(SKCanvas canvas, Camera2D camera, SceneSegment item, SKPaint paint)
@@ -140,5 +236,9 @@ public sealed class SceneRenderer : IDisposable
         _stroke.Dispose();
         _highlightStroke.Dispose();
         _markerStroke.Dispose();
+        _rapidStroke.Dispose();
+        _toolpathStroke.Dispose();
+        _torchFill.Dispose();
+        _torchRing.Dispose();
     }
 }
