@@ -8,6 +8,8 @@ public enum CutProcess
     Laser = 1,
     OxyFuel = 2,
     WaterJet = 3,
+    Router = 4,
+    Mill = 5,
 }
 
 /// <summary>Stil leada — otvoren skup; V1 implementira Line i Arc, arhitektura nosi sve.</summary>

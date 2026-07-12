@@ -21,6 +21,7 @@
     <ProjectReference Include="..\Inostvor.Geometry\Inostvor.Geometry.csproj" />
     <ProjectReference Include="..\Inostvor.Rendering\Inostvor.Rendering.csproj" />
     <ProjectReference Include="..\Inostvor.Cam\Inostvor.Cam.csproj" />
+    <ProjectReference Include="..\Inostvor.Post\Inostvor.Post.csproj" />
   </ItemGroup>
 
   <ItemGroup>

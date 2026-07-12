@@ -16,9 +16,12 @@ using Inostvor.Geometry.Contours;
 using Inostvor.Geometry.Rules;
 using Inostvor.Geometry.Validation;
 using Inostvor.Import.NetDxf;
+using Inostvor.Post;
+using Inostvor.Post.Plugins;
 using Inostvor.Sdk;
 using Inostvor.Sdk.Import;
 using Inostvor.Sdk.Cam;
+using Inostvor.Sdk.Post;
 using Inostvor.Sdk.Validation;
 using Inostvor.ViewModels;
 using Serilog;
@@ -96,6 +99,13 @@ public partial class App : Application
         builder.Services.AddSingleton<ICutOrderStrategy, NearestNeighborCutOrderStrategy>();
         builder.Services.AddSingleton<ICutOrderStrategyProvider, CutOrderStrategyProvider>();
         builder.Services.AddSingleton<IToolpathGenerator, ToolpathGenerator>();
+
+        // Postprocesori (M7, ADR-004): SVI kao ravnopravni pluginovi kroz IPostProcessorPlugin.
+        builder.Services.AddSingleton<IPostProcessorPlugin, Mach3PostPlugin>();
+        builder.Services.AddSingleton<IPostProcessorPlugin, Ec300PostPlugin>();
+        builder.Services.AddSingleton<IPostProcessorCatalog, PostProcessorCatalog>();
+        builder.Services.AddSingleton<IFileSaveService>(
+            new FileSaveService(() => WinRT.Interop.WindowNative.GetWindowHandle(((App)Current)._window!)));
 
         builder.Services.AddSingleton<ConsoleViewModel>();
         builder.Services.AddSingleton<MainViewModel>();

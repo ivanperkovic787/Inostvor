@@ -6,7 +6,9 @@ using Inostvor.Core.Model.Geometry;
 using Inostvor.Core.Model.Import;
 using Inostvor.Core.Model.Toolpath;
 using Inostvor.Core.Model.Validation;
+using Inostvor.Post;
 using Inostvor.Rendering.Scene;
+using Inostvor.Sdk.Post;
 
 namespace Inostvor.ViewModels;
 
@@ -22,6 +24,8 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IFilePickerService _filePicker;
     private readonly IGeometryPipeline _pipeline;
     private readonly IToolpathGenerator _toolpathGenerator;
+    private readonly IPostProcessorCatalog _postCatalog;
+    private readonly IFileSaveService _fileSave;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -49,6 +53,42 @@ public sealed partial class MainViewModel : ObservableObject
     partial void OnLastToolpathChanged(ToolpathProgram? value)
     {
         Simulation.SetProgram(value);
+        ExportGCodeCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>Aktivni stroj (M8 donosi persistenciju i UI izbor; V1: EC300 profil).</summary>
+    public Core.Model.Machines.MachineProfile ActiveMachine { get; } = BuiltInMachineProfiles.Ec300Plasma;
+
+    private bool CanExportGCode() => LastToolpath is not null && LastToolpath.Sequences.Count > 0;
+
+    [RelayCommand(CanExecute = nameof(CanExportGCode))]
+    private async Task ExportGCodeAsync()
+    {
+        var plugin = _postCatalog.Find(ActiveMachine.PostProcessorId);
+        if (plugin is null)
+        {
+            _logger.LogError("Postprocesor '{Id}' nije registriran.", ActiveMachine.PostProcessorId);
+            return;
+        }
+
+        var post = plugin.Create(plugin.DefaultDialect, ActiveMachine);
+        var result = post.Generate(LastToolpath!);
+
+        foreach (var warning in result.Warnings)
+        {
+            _logger.LogWarning("[POST] {Warning}", warning);
+        }
+
+        var path = await _fileSave.SaveTextAsync("program", result.FileExtension, result.GCode).ConfigureAwait(true);
+        if (path is null)
+        {
+            return; // korisnik odustao
+        }
+
+        _logger.LogInformation(
+            "G-kod izvezen: {Path} ({Post} / {Machine}, {Lines} redaka).",
+            path, plugin.DisplayName, ActiveMachine.Name, result.GCode.Count(c => c == '\n'));
+        StatusText = FormattableString.Invariant($"G-kod spremljen: {Path.GetFileName(path)}");
     }
 
     partial void OnSelectedIssueChanged(IssueDisplay? value)
@@ -74,6 +114,8 @@ public sealed partial class MainViewModel : ObservableObject
         IFilePickerService filePicker,
         IGeometryPipeline pipeline,
         IToolpathGenerator toolpathGenerator,
+        IPostProcessorCatalog postCatalog,
+        IFileSaveService fileSave,
         ILogger<MainViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(undoService);
@@ -81,6 +123,8 @@ public sealed partial class MainViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(filePicker);
         ArgumentNullException.ThrowIfNull(pipeline);
         ArgumentNullException.ThrowIfNull(toolpathGenerator);
+        ArgumentNullException.ThrowIfNull(postCatalog);
+        ArgumentNullException.ThrowIfNull(fileSave);
         ArgumentNullException.ThrowIfNull(logger);
 
         _undoService = undoService;
@@ -88,6 +132,8 @@ public sealed partial class MainViewModel : ObservableObject
         _filePicker = filePicker;
         _pipeline = pipeline;
         _toolpathGenerator = toolpathGenerator;
+        _postCatalog = postCatalog;
+        _fileSave = fileSave;
         _logger = logger;
 
         _undoService.StateChanged += (_, _) =>

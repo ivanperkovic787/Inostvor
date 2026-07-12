@@ -1,0 +1,32 @@
+( Inostvor - EC300 - EC300 Plasma (900x1200) )
+( Sekvenci: 2 | Rez: 141.4 mm | Vrijeme: 5 s )
+G21 G90
+
+( Sekvenca 1/2 - kontura #7 )
+G00 Z30
+G00 X10 Y15
+G00 Z3.8
+M03
+G04 P0.3
+G04 P0.6
+G00 Z1.5
+G01 X10 Y20 F3000
+X60 Y20
+X60 Y70
+X65 Y70
+M05
+
+( Sekvenca 2/2 - kontura #9 )
+G00 Z30
+G00 X100 Y0
+G00 Z3.8
+M03
+G04 P0.3
+G04 P0.6
+G00 Z1.5
+G03 X100 Y20 I0 J10
+M05
+
+G00 Z30
+M05
+M30

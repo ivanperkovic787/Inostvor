@@ -26,6 +26,12 @@
           <TextBlock Text="Otvori DXF" />
         </StackPanel>
       </Button>
+      <Button Command="{x:Bind ViewModel.ExportGCodeCommand}" ToolTipService.ToolTip="Izvezi G-kod za aktivni stroj">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <FontIcon Glyph="&#xE74E;" FontSize="14" />
+          <TextBlock Text="G-kod" />
+        </StackPanel>
+      </Button>
       <AppBarSeparator />
       <Button Command="{x:Bind ViewModel.UndoCommand}" ToolTipService.ToolTip="Poništi (Ctrl+Z)">
         <FontIcon Glyph="&#xE7A7;" FontSize="14" />

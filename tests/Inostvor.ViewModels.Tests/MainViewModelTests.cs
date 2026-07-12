@@ -4,6 +4,7 @@ using Inostvor.Core.Abstractions;
 using Inostvor.Core.Model.Import;
 using Inostvor.Core.Model.Toolpath;
 using Inostvor.Core.Model.Validation;
+using Inostvor.Sdk.Post;
 using Shouldly;
 using Xunit;
 
@@ -16,6 +17,8 @@ public sealed class MainViewModelTests
     private readonly IFilePickerService _picker = Substitute.For<IFilePickerService>();
     private readonly IGeometryPipeline _pipeline = Substitute.For<IGeometryPipeline>();
     private readonly IToolpathGenerator _toolpath = Substitute.For<IToolpathGenerator>();
+    private readonly IPostProcessorCatalog _catalog = Substitute.For<IPostProcessorCatalog>();
+    private readonly IFileSaveService _fileSave = Substitute.For<IFileSaveService>();
 
     private MainViewModel Create()
     {
@@ -23,7 +26,7 @@ public sealed class MainViewModelTests
             .Returns(new GeometryPipelineResult([], [], new ValidationReport([])));
         _toolpath.Generate(Arg.Any<IReadOnlyList<Core.Model.Geometry.Contour>>(), Arg.Any<TechnologySettings>())
             .Returns(ToolpathProgram.Empty);
-        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, NullLogger<MainViewModel>.Instance);
+        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, _catalog, _fileSave, NullLogger<MainViewModel>.Instance);
     }
 
     [Fact]
