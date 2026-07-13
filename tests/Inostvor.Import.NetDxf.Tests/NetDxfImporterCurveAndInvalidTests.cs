@@ -99,12 +99,14 @@ public sealed class NetDxfImporterCurveAndInvalidTests
     [Fact]
     public void DegeneriraniEntiteti_PreskocnjeniUzUpozorenja_ValidanPrezivi()
     {
+        // Datoteka sadrži 3 degenerirana entiteta (linija nulte duljine, luk nultog
+        // sweepa, polilinija s jednom točkom) + 1 validnu liniju duljine 50 mm.
         var r = Import("Invalid", "degenerate_entities.dxf");
 
         r.Success.ShouldBeTrue(r.Error);
-        r.Entities.Count.ShouldBe(1); // samo validna linija (0,0)→(50,0)
+        r.Entities.Count.ShouldBe(1); // samo validna linija (0,0)→(50,0) preživi
         r.Entities[0].Segments.ShouldHaveSingleItem().Length.ShouldBe(50.0, 1e-6);
-        r.Warnings.Count(w => w.Code == ImportWarningCodes.DegenerateEntity).ShouldBeGreaterThanOrEqualTo(2);
+        r.Warnings.Count(w => w.Code == ImportWarningCodes.DegenerateEntity).ShouldBeGreaterThanOrEqualTo(3);
     }
 
     [Fact]
