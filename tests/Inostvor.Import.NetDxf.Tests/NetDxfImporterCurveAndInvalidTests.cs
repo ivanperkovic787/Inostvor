@@ -99,8 +99,10 @@ public sealed class NetDxfImporterCurveAndInvalidTests
     [Fact]
     public void DegeneriraniEntiteti_PreskocnjeniUzUpozorenja_ValidanPrezivi()
     {
-        // Datoteka sadrži 3 degenerirana entiteta (linija nulte duljine, luk nultog
-        // sweepa, polilinija s jednom točkom) + 1 validnu liniju duljine 50 mm.
+        // Datoteka sadrži 3 degenerirana entiteta (linija nulte duljine, polilinija s
+        // jednom točkom, polilinija s dvije identične točke) + 1 validnu liniju 50 mm.
+        // NAPOMENA: ARC s jednakim start/end kutom NIJE degeneracija — importer ga
+        // namjerno tretira kao PUNI KRUG (M2 odluka: mnogi CAD-ovi tako pišu krugove).
         var r = Import("Invalid", "degenerate_entities.dxf");
 
         r.Success.ShouldBeTrue(r.Error);
