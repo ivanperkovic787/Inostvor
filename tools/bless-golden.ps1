@@ -28,10 +28,12 @@ if (-not (Test-Path $proj)) {
 
 # Program.cs se uvijek prepisuje (mora pratiti GoldenTestProgram)
 @'
+using Inostvor.Core.Model.Machines;
 using Inostvor.Core.Model.Toolpath;
 using Inostvor.Kernel.Primitives;
 using Inostvor.Post;
 using Inostvor.Post.Plugins;
+using Inostvor.Sdk.Post;
 
 // ISTI program kao GoldenTestProgram u testovima.
 const double feed = 3000.0;
@@ -61,7 +63,7 @@ var program = new ToolpathProgram([seq1, seq2], rapids, tech, stats);
 var outDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "tests", "Inostvor.Post.Tests", "GoldenFiles"));
 Directory.CreateDirectory(outDir);
 
-void Bless(IPostProcessorPlugin plugin, Inostvor.Core.Model.Machines.MachineProfile profile, string fileName)
+void Bless(IPostProcessorPlugin plugin, MachineProfile profile, string fileName)
 {
     var gcode = plugin.Create(plugin.DefaultDialect, profile).Generate(program).GCode;
     var path = Path.Combine(outDir, fileName);
