@@ -72,28 +72,41 @@ public sealed class PolylineSelfIntersectionTests
     [Fact]
     public void DvaLukaSeSijeku_UnutarPolyline()
     {
-        // Dvije polukružnice čije se kružnice sijeku: spojene linijama u otvorenu polyline.
-        // A0: gornja polukružnica oko (0,0) r=2: (2,0)→(-2,0).
-        // L1: (-2,0)→(-1,-2).  A2: gornja polukružnica oko (1,-2) r=2: (-1,-2)→(3,-2).
-        // Kružnica A2 (centar (1,-2), r=2) siječe kružnicu A0 (centar (0,0), r=2);
-        // presjeci obiju KRUŽNICA: računamo i provjeravamo da je barem jedan na oba LUKA.
+        // Dvije GORNJE polukružnice jednakog polumjera r=2, centri (0,0) i (2,0).
+        // Kružnice se sijeku u (1, ±√3); GORNJI presjek (1, +√3) leži na OBA luka.
+        //   A0: centar (0,0), start 0°, sweep +180° (CCW)  → gornja polovica, (2,0) → (-2,0)
+        //   L1: (-2,0) → (0,0)  — spojnica koja lanac vodi do početka A2
+        //   A2: centar (2,0), start 180°, sweep -180° (CW) → gornja polovica, (0,0) → (4,0)
         var p = new Polyline2([
             new ArcSeg(new Point2(0, 0), 2.0, 0.0, Math.PI),
-            new LineSeg(new Point2(-2, 0), new Point2(-1, -2)),
-            new ArcSeg(new Point2(1, -2), 2.0, Math.PI, -Math.PI), // CW od (-1,-2) do (3,-2): gornja polovica
+            new LineSeg(new Point2(-2, 0), new Point2(0, 0)),
+            new ArcSeg(new Point2(2, 0), 2.0, Math.PI, -Math.PI),
         ]);
 
-        // Gornja polovica kružnice oko (1,-2) doseže do y = 0 (vrh u (1,0)) i prolazi kroz
-        // (1-√3·? ) ... presjeci kružnica: d=√5, računamo samo da hit postoji i da je na luku 0 i 2.
         var hits = PolylineSelfIntersection.Find(p);
 
-        hits.ShouldNotBeEmpty();
-        hits.All(h => h.SegmentA == 0 && h.SegmentB == 2).ShouldBeTrue();
-        foreach (var h in hits)
-        {
-            h.Point.DistanceTo(new Point2(0, 0)).ShouldBe(2.0, 1e-6);
-            h.Point.DistanceTo(new Point2(1, -2)).ShouldBe(2.0, 1e-6);
-        }
+        // Točno jedan presjek, s EGZAKTNO poznatom pozicijom (1, √3).
+        var hit = hits.ShouldHaveSingleItem();
+        hit.SegmentA.ShouldBe(0);
+        hit.SegmentB.ShouldBe(2);
+        hit.Point.X.ShouldBe(1.0, 1e-9);
+        hit.Point.Y.ShouldBe(Math.Sqrt(3.0), 1e-9);
+    }
+
+    [Fact]
+    public void KruzniceSeSijeku_AliLukoviNe_PrazanRezultat()
+    {
+        // KLJUČNI rubni slučaj: pune kružnice se sijeku, ali presjeci NE leže na lukovima.
+        // Centri (0,0) i (1,-2), oba r=2 → kružnice se sijeku u (-0.983, -1.742) i (1.983, -0.258).
+        // Oba presjeka su na DONJIM polovicama kružnice A0, a luk A0 pokriva samo gornju.
+        // Detektor MORA odbaciti oba — inače bi CAM prijavljivao lažne samopresjeke.
+        var p = new Polyline2([
+            new ArcSeg(new Point2(0, 0), 2.0, 0.0, Math.PI),            // gornja polovica oko (0,0)
+            new LineSeg(new Point2(-2, 0), new Point2(-1, -2)),
+            new ArcSeg(new Point2(1, -2), 2.0, Math.PI, -Math.PI),      // gornja polovica oko (1,-2)
+        ]);
+
+        PolylineSelfIntersection.Find(p).ShouldBeEmpty();
     }
 
     [Fact]
