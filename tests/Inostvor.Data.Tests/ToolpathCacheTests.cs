@@ -33,7 +33,7 @@ public sealed class ToolpathCacheTests : IDisposable
             TechnologySettings.Default, stats);
     }
 
-    private ProjectDocument Document(string dxfPath, TechnologySettings? tech = null) => new()
+    private static ProjectDocument Document(string dxfPath, TechnologySettings? tech = null) => new()
     {
         Name = "Cache test",
         DxfSources = [ProjectDxfSource.Create("a.dxf", dxfPath, CacheKey.HashFile(dxfPath))],

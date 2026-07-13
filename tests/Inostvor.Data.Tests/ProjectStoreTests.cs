@@ -80,7 +80,7 @@ public sealed class ProjectStoreTests : IDisposable
         await store.SaveAsync(doc, path);
         var loaded = await store.LoadAsync(path);
 
-        var preserved = loaded.Document.Extensions.ShouldContainKey("nesting");
+        loaded.Document.Extensions.ContainsKey("nesting").ShouldBeTrue();
         loaded.Document.Extensions["nesting"].GetProperty("algo").GetString().ShouldBe("rect");
         loaded.Document.Extensions["nesting"].GetProperty("sheets")[0].GetProperty("w").GetDouble().ShouldBe(1500);
     }

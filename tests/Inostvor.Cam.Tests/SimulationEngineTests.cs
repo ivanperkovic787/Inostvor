@@ -132,6 +132,9 @@ public sealed class SimulationEngineTests
     }
 
     [Fact]
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Performance", "CA1859:Use concrete types when possible",
+        Justification = "Namjerno kroz sučelje: test dokazuje da UI može ovisiti o IMachineStateSource (put prema Live Monitoru).")]
     public void Sesija_JeIzvorStanjaStroja()
     {
         // Digital twin sučelje: UI ovisi o IMachineStateSource, ne o sesiji.
