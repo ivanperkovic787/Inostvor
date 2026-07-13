@@ -58,7 +58,7 @@ public sealed class ContourBuilder : IContourBuilder
 
     private static void BuildLayer(
         string layer,
-        IReadOnlyList<ISegment> segments,
+        List<ISegment> segments,
         ContourBuildSettings settings,
         List<Contour> contours,
         List<ContourJoin> joins,
