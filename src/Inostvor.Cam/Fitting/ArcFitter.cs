@@ -42,7 +42,7 @@ public sealed class ArcFitter : IArcFitter
     /// <summary>
     /// Otvoreni lanac: pohlepno fitanje od početka do kraja.
     /// </summary>
-    private List<ISegment> FitOpenChain(List<Point2> pts, double tolerance)
+    private static List<ISegment> FitOpenChain(List<Point2> pts, double tolerance)
     {
         var segments = new List<ISegment>();
         var i = 0;
@@ -82,7 +82,7 @@ public sealed class ArcFitter : IArcFitter
     /// se dopušta da prijeđu granicu n — luk preko šava tako nastaje kao JEDAN luk.
     /// Fitanje staje čim je obiđen puni krug.
     /// </summary>
-    private List<ISegment> FitClosedRing(List<Point2> pts, double tolerance)
+    private static List<ISegment> FitClosedRing(List<Point2> pts, double tolerance)
     {
         var n = pts.Count;
 
