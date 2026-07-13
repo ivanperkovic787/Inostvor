@@ -23,7 +23,10 @@ public sealed class NetDxfImportPlugin : IImportPlugin
     {
         ArgumentNullException.ThrowIfNull(host);
         _logger = host.Logger;
-        _logger.LogInformation("Import plugin registriran: {Name} ({Id})", Name, Id);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Import plugin registriran: {Name} ({Id})", Name, Id);
+        }
     }
 
     public IDxfImporter CreateImporter() => new NetDxfImporter(ImportSettings.Default);

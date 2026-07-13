@@ -21,6 +21,11 @@ using Inostvor.Kernel;
 using Inostvor.Kernel.Primitives;
 using Inostvor.Kernel.Transforms;
 
+// netDxf.Entities sadrži VLASTITI tip Tolerance (DXF entitet geometrijske
+// tolerancije) koji se sudara s Inostvor.Kernel.Tolerance. Alias razrješava
+// dvosmislenost bez diranja ostatka koda.
+using Tolerance = Inostvor.Kernel.Tolerance;
+
 namespace Inostvor.Import.NetDxf;
 
 /// <summary>
@@ -60,8 +65,7 @@ public sealed class NetDxfImporter : IDxfImporter
             if (version < DxfVersion.AutoCad2000)
             {
                 return ImportResult.Fail(FormattableString.Invariant(
-                    $"DXF verzija '{version}' nije podržana netDxf parserom (minimalno AutoCad2000). " +
-                    "Starije datoteke (R12/R13/R14) spremiti u noviji format ili koristiti drugi importer."));
+                    $"DXF verzija '{version}' nije podržana netDxf parserom (minimalno AutoCad2000). Starije datoteke (R12/R13/R14) spremiti u noviji format ili koristiti drugi importer."));
             }
 
             var doc = DxfDocument.Load(filePath);
@@ -410,7 +414,7 @@ public sealed class NetDxfImporter : IDxfImporter
     }
 
     private static void MapSampledCurve(
-        IReadOnlyList<Point2> localPoints, bool isClosed, EntityObject source, string sourceType,
+        List<Point2> localPoints, bool isClosed, EntityObject source, string sourceType,
         string warningCode, string warningMessage, in Matrix3x2d matrix, string layer,
         string sourcePrefix, List<ImportedEntity> output, WarningCollector warnings)
     {
