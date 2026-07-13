@@ -145,13 +145,11 @@ public sealed class ArcFitterTests
 
         var segments = Fitter.Fit(ring, closed: true, tolerance: 0.01);
 
-        segments.ShouldAllBe(seg => seg is ArcSeg); // NIJEDNA linija
-        foreach (var seg in segments)
-        {
-            var arc = (ArcSeg)seg;
-            arc.Center.DistanceTo(center).ShouldBeLessThan(0.02);
-            arc.Radius.ShouldBe(r, 0.02);
-        }
+        // Cijeli prsten JEST kružnica → jedan puni krug (jedan G2/G3), nijedna linija.
+        var arc = segments.ShouldHaveSingleItem().ShouldBeOfType<ArcSeg>();
+        arc.Center.DistanceTo(center).ShouldBeLessThan(0.02);
+        arc.Radius.ShouldBe(r, 0.02);
+        Math.Abs(arc.SweepAngle).ShouldBe(Math.Tau, 1e-9);
     }
 
     [Fact]
