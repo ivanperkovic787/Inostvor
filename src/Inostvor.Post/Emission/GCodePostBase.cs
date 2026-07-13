@@ -72,11 +72,35 @@ public class GCodePostBase : IPostProcessor
     {
         foreach (var line in Dialect.HeaderLines)
         {
-            b.Line(Substitute(line, program));
+            EmitTemplateLine(b, Substitute(line, program));
         }
 
         var units = Dialect.Units == UnitsMode.Millimeters ? "G21" : "G20";
         b.Line(units + " G90");
+    }
+
+    /// <summary>
+    /// Redak zaglavlja/podnožja koji je KOMENTAR mora poštovati EmitComments — inače
+    /// bi kontroler koji ne podnosi komentare dobio neispravan G-kod. Redak se
+    /// prepoznaje kao komentar ako počinje oznakom komentara iz dijalekta.
+    /// </summary>
+    private void EmitTemplateLine(GCodeBuilder b, string line)
+    {
+        var isComment = Dialect.CommentStart.Length > 0
+            && line.TrimStart().StartsWith(Dialect.CommentStart, StringComparison.Ordinal);
+
+        if (!isComment)
+        {
+            b.Line(line);
+            return;
+        }
+
+        if (!Dialect.EmitComments)
+        {
+            return; // komentari isključeni — redak se preskače
+        }
+
+        b.Line(line);
     }
 
     protected virtual void EmitRapidToPierce(GCodeBuilder b, CutSequence sequence)
@@ -114,7 +138,7 @@ public class GCodePostBase : IPostProcessor
         b.Line(FormattableString.Invariant($"{Dialect.RapidCode} Z{b.Number(U(Profile.SafeZ))}"));
         foreach (var line in Dialect.FooterLines)
         {
-            b.Line(Substitute(line, program));
+            EmitTemplateLine(b, Substitute(line, program));
         }
     }
 
