@@ -122,6 +122,56 @@ public sealed class ArcFitterTests
     }
 
     [Fact]
+    public void ZatvorenaKruznica_SavNeOstavljaLiniju()
+    {
+        // REGRESIJSKI TEST: šav zatvorenog prstena (točka gdje niz počinje) je kod
+        // kerf offseta proizvoljan — normalizacija ga postavi na leksikografski
+        // minimum, dakle USRED glatkog luka. Naivno fitanje od šava do šava ostavlja
+        // kratki rep koji degradira u LINIJU, iako su rep i prvi luk isti luk.
+        // Posljedica bi bila: svaka rupa u G-kodu ima jednu suvišnu G1 liniju.
+        var center = new Point2(50, 50);
+        const double r = 11.0;
+        const int n = 64;
+
+        var ring = new List<Point2>();
+        for (var k = 0; k < n; k++)
+        {
+            var a = Math.Tau * k / n;
+            // Kvantizacija na µm — isto što radi Clipper (ADR-001).
+            var x = Math.Round((center.X + (r * Math.Cos(a))) * 1000) / 1000;
+            var y = Math.Round((center.Y + (r * Math.Sin(a))) * 1000) / 1000;
+            ring.Add(new Point2(x, y));
+        }
+
+        var segments = Fitter.Fit(ring, closed: true, tolerance: 0.01);
+
+        segments.ShouldAllBe(seg => seg is ArcSeg); // NIJEDNA linija
+        foreach (var seg in segments)
+        {
+            var arc = (ArcSeg)seg;
+            arc.Center.DistanceTo(center).ShouldBeLessThan(0.02);
+            arc.Radius.ShouldBe(r, 0.02);
+        }
+    }
+
+    [Fact]
+    public void ZatvoreniPravokutnik_SavPadaNaKut()
+    {
+        // Prsten s KUTOVIMA: šav se mora postaviti na kut, a rezultat su točno
+        // 4 linije (bez umjetne podjele stranice na dva komada).
+        var ring = new List<Point2>();
+        for (var i = 0; i <= 10; i++) ring.Add(new Point2(i * 2.0, 0));
+        for (var i = 1; i <= 10; i++) ring.Add(new Point2(20, i * 2.0));
+        for (var i = 9; i >= 0; i--) ring.Add(new Point2(i * 2.0, 20));
+        for (var i = 9; i >= 1; i--) ring.Add(new Point2(0, i * 2.0));
+
+        var segments = Fitter.Fit(ring, closed: true, tolerance: 0.01);
+
+        segments.Count.ShouldBe(4);
+        segments.ShouldAllBe(seg => seg is LineSeg);
+    }
+
+    [Fact]
     public void Determinizam_IstiUlaz_IdenticanIzlaz()
     {
         var points = SampleArc(new Point2(0, 0), 25, 0, Math.PI * 1.5, 120);

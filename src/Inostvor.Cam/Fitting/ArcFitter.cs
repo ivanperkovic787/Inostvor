@@ -25,11 +25,37 @@ public sealed class ArcFitter : IArcFitter
         ArgumentNullException.ThrowIfNull(points);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(tolerance, 0.0);
 
-        // Zatvoreni prsten: radi na nizu p0..pn-1,p0 (šav se ne fita preko — konzervativno).
         var pts = new List<Point2>(points);
-        if (closed && pts.Count > 1 && !pts[0].AlmostEquals(pts[^1]))
+        if (closed && pts.Count > 1 && pts[0].AlmostEquals(pts[^1]))
         {
-            pts.Add(pts[0]);
+            pts.RemoveAt(pts.Count - 1); // radimo s prstenom bez duplicirane zadnje točke
+        }
+
+        // ZATVORENI PRSTEN: šav (točka gdje niz počinje) je proizvoljan — kod kerf
+        // offseta ga postavlja normalizacija (leksikografski minimum), dakle usred
+        // glatkog luka. Naivno fitanje od šava do šava zato uvijek ostavlja kratki
+        // REP koji je prekratak za vlastiti luk i degradira u liniju, iako su rep i
+        // prvi luk FIZIČKI ISTI luk. Rješenje: rotiraj prsten tako da šav padne na
+        // KUT (mjesto stvarnog prekida zakrivljenosti). Ako kuta nema (čista
+        // kružnica), fit kreće bilo gdje i cijeli prsten postaje jedan-dva luka.
+        if (closed && pts.Count >= MinArcPoints)
+        {
+            var seam = FindCornerIndex(pts, tolerance);
+            if (seam > 0)
+            {
+                var rotated = new List<Point2>(pts.Count);
+                for (var k = 0; k < pts.Count; k++)
+                {
+                    rotated.Add(pts[(seam + k) % pts.Count]);
+                }
+
+                pts = rotated;
+            }
+        }
+
+        if (closed && pts.Count > 1)
+        {
+            pts.Add(pts[0]); // zatvori niz za obradu
         }
 
         var segments = new List<ISegment>();
@@ -55,7 +81,93 @@ public sealed class ArcFitter : IArcFitter
             }
         }
 
+        // Zatvoreni prsten: ako su ZADNJI i PRVI segment isti luk (šav je pao usred
+        // glatkog luka), spoji ih u jedan — inače bi ostala umjetna podjela na šavu.
+        if (closed && segments.Count >= 2)
+        {
+            segments = MergeSeamArcs(segments, tolerance);
+        }
+
         return segments;
+    }
+
+    /// <summary>
+    /// Indeks točke u kojoj se smjer naglo mijenja (KUT) — prirodno mjesto za šav
+    /// zatvorenog prstena. Vraća 0 ako prsten nema kuta (glatka krivulja).
+    /// Prag: 15° promjene smjera između susjednih tetiva.
+    /// </summary>
+    private static int FindCornerIndex(List<Point2> pts, double tolerance)
+    {
+        const double CornerThresholdRad = 0.26; // ~15°
+
+        var bestIndex = 0;
+        var bestTurn = CornerThresholdRad;
+
+        for (var k = 0; k < pts.Count; k++)
+        {
+            var previous = pts[(k - 1 + pts.Count) % pts.Count];
+            var current = pts[k];
+            var next = pts[(k + 1) % pts.Count];
+
+            var incoming = current - previous;
+            var outgoing = next - current;
+            if (incoming.Length < Tolerance.Geometric || outgoing.Length < Tolerance.Geometric)
+            {
+                continue;
+            }
+
+            var turn = Math.Abs(MathUtil.NormalizeAngle(outgoing.Angle - incoming.Angle));
+            if (turn > Math.PI)
+            {
+                turn = Math.Tau - turn;
+            }
+
+            if (turn > bestTurn)
+            {
+                bestTurn = turn;
+                bestIndex = k;
+            }
+        }
+
+        return bestIndex;
+    }
+
+    /// <summary>
+    /// Spaja zadnji i prvi segment ako oba leže na ISTOJ kružnici i nastavljaju se
+    /// (šav je pao usred glatkog luka). Rezultat je jedan luk preko šava.
+    /// Konzervativno: spaja SAMO lukove, i samo ako se centar, polumjer i smjer
+    /// podudaraju unutar tolerancije.
+    /// </summary>
+    private static List<ISegment> MergeSeamArcs(List<ISegment> segments, double tolerance)
+    {
+        if (segments[0] is not ArcSeg first || segments[^1] is not ArcSeg last)
+        {
+            return segments;
+        }
+
+        var sameCircle = last.Center.DistanceTo(first.Center) <= tolerance
+            && Math.Abs(last.Radius - first.Radius) <= tolerance
+            && last.IsCcw == first.IsCcw;
+        if (!sameCircle)
+        {
+            return segments;
+        }
+
+        var combinedSweep = last.SweepAngle + first.SweepAngle;
+        if (Math.Abs(combinedSweep) >= Math.Tau - (Tolerance.Angular * 10.0))
+        {
+            return segments; // spajanje bi dalo puni krug — ostavi šav
+        }
+
+        var merged = new ArcSeg(last.Center, last.Radius, last.StartAngle, combinedSweep);
+
+        var result = new List<ISegment>(segments.Count - 1) { merged };
+        for (var k = 1; k < segments.Count - 1; k++)
+        {
+            result.Add(segments[k]);
+        }
+
+        return result;
     }
 
     /// <summary>Najdalji j takav da su SVE točke i..j unutar tolerancije od tetive p[i]→p[j].</summary>
