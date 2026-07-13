@@ -67,7 +67,10 @@ public sealed class ValidationDeterminismTests
     public void ObrnutRedoslijedPravila_Identican_Izvjestaj()
     {
         var forward = Fingerprint(new ToolpathValidator(AllRules()).Validate(BuildContext()));
-        var backward = Fingerprint(new ToolpathValidator(AllRules().Reverse().ToArray()).Validate(BuildContext()));
+        // NAPOMENA: AllRules() vraća niz, pa bi .Reverse() razriješio na Array.Reverse (void).
+        // Enumerable.Reverse je ono što treba — obrnuti REDOSLIJED REGISTRACIJE pravila.
+        var backward = Fingerprint(new ToolpathValidator(
+            Enumerable.Reverse(AllRules()).ToArray()).Validate(BuildContext()));
 
         backward.ShouldBe(forward);
     }

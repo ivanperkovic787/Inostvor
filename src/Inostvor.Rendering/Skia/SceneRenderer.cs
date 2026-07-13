@@ -163,7 +163,7 @@ public sealed class SceneRenderer : IDisposable
         canvas.DrawCircle((float)p.X, (float)p.Y, 8f, _torchRing);
     }
 
-    private void DrawGeometry(SKCanvas canvas, Camera2D camera, ISegment geometry, SKPaint paint)
+    private static void DrawGeometry(SKCanvas canvas, Camera2D camera, ISegment geometry, SKPaint paint)
     {
         switch (geometry)
         {
