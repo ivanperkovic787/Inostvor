@@ -94,25 +94,65 @@ public sealed class ArcFitter : IArcFitter
 
     /// <summary>
     /// Najdalji j za koji postoji VERIFICIRAN luk kroz p[i]..p[j]; vraća i sam luk.
-    /// Verifikacija: |dist(centar, p[k]) − r| ≤ tol za sve k, monotoni kutovi, r ≤ MaxArcRadius.
+    ///
+    /// KLJUČNO: NE raste pohlepno od najmanjeg prozora. Rekonstrukcija kružnice iz
+    /// KRATKOG isječka luka je loše uvjetovan problem — ulazne točke nose
+    /// kvantizacijski šum Clippera (±0.5 µm), koji pri malom kutnom rasponu naraste
+    /// u pogrešku centra od 0.1 mm i sruši verifikaciju. Zato tražimo NAJVEĆI prozor
+    /// koji prolazi verifikaciju (eksponencijalna pretraga + binarno sužavanje):
+    /// veliki prozor je dobro uvjetovan, šum se poništava, luk se pronađe.
     /// </summary>
     private static int ExtendArc(List<Point2> pts, int i, double tolerance, out ArcSeg? best)
     {
         best = null;
         var bestEnd = i + 1;
 
-        var j = i + MinArcPoints - 1;
-        while (j < pts.Count)
+        var maxEnd = pts.Count - 1;
+        if (maxEnd - i + 1 < MinArcPoints)
         {
-            var arc = TryBuildVerifiedArc(pts, i, j, tolerance);
+            return bestEnd;
+        }
+
+        // Faza 1: eksponencijalno traži gornju granicu koja NE prolazi.
+        var lo = i + MinArcPoints - 1;   // najmanji dopušteni prozor
+        var step = MinArcPoints;
+        var hi = lo;
+
+        while (hi <= maxEnd)
+        {
+            var arc = TryBuildVerifiedArc(pts, i, hi, tolerance);
             if (arc is null)
             {
-                break; // pohlepno: prvo proširenje koje ne prolazi zaustavlja rast
+                break;
             }
 
             best = arc;
-            bestEnd = j;
-            j++;
+            bestEnd = hi;
+            lo = hi;
+            step *= 2;
+            hi = Math.Min(i + step, maxEnd);
+            if (lo == maxEnd)
+            {
+                break;
+            }
+        }
+
+        // Faza 2: binarno sužavanje između zadnjeg uspjeha (lo) i prvog neuspjeha (hi).
+        var upper = Math.Min(hi, maxEnd);
+        while (lo + 1 < upper)
+        {
+            var mid = lo + ((upper - lo) / 2);
+            var arc = TryBuildVerifiedArc(pts, i, mid, tolerance);
+            if (arc is not null)
+            {
+                best = arc;
+                bestEnd = mid;
+                lo = mid;
+            }
+            else
+            {
+                upper = mid;
+            }
         }
 
         return bestEnd;
@@ -120,13 +160,18 @@ public sealed class ArcFitter : IArcFitter
 
     private static ArcSeg? TryBuildVerifiedArc(List<Point2> pts, int i, int j, double tolerance)
     {
-        // Kružnica kroz krajeve i točku najudaljeniju od tetive (stabilan izbor).
+        if (j - i + 1 < MinArcPoints)
+        {
+            return null;
+        }
+
         var chord = pts[i].DistanceTo(pts[j]) > Tolerance.Geometric ? new LineSeg(pts[i], pts[j]) : null;
         if (chord is null)
         {
             return null;
         }
 
+        // Najudaljenija točka od tetive — mjera "zakrivljenosti" prozora.
         var farIndex = i + 1;
         var farDistance = -1.0;
         for (var k = i + 1; k < j; k++)
@@ -144,12 +189,13 @@ public sealed class ArcFitter : IArcFitter
             return null; // praktički ravno — linija je ispravniji izbor
         }
 
-        if (!TryCircumcenter(pts[i], pts[farIndex], pts[j], out var center))
+        // Centar i polumjer LEAST-SQUARES fitom preko SVIH točaka prozora (Kåsa).
+        // Kružnica kroz tri točke je loše uvjetovana na šumovitom ulazu; LSQ šum poništava.
+        if (!TryFitCircle(pts, i, j, out var center, out var radius))
         {
             return null;
         }
 
-        var radius = center.DistanceTo(pts[i]);
         if (radius > MaxArcRadius || radius <= Tolerance.Geometric)
         {
             return null;
@@ -161,7 +207,8 @@ public sealed class ArcFitter : IArcFitter
         var aEnd = MathUtil.NormalizeAngle((pts[j] - center).Angle - a0);
         var isCcw = aFar < aEnd;
 
-        // Verifikacija SVIH točaka: radijalno odstupanje + stroga monotonost kuta.
+        // VERIFIKACIJA (garancija točnosti): svaka točka unutar tolerancije od luka,
+        // kutovi strogo monotoni duž smjera obilaska.
         var previousOffset = 0.0;
         for (var k = i; k <= j; k++)
         {
@@ -192,24 +239,107 @@ public sealed class ArcFitter : IArcFitter
             return null; // puni krug preko fitanja nije dopušten (šav ostaje)
         }
 
-        return new ArcSeg(center, radius, a0, sweep);
+        // Luk se sidri na STVARNE krajnje točke ulaza (kontinuitet putanje),
+        // uz centar iz LSQ fita — polumjer se preračunava iz početne točke.
+        var anchoredRadius = center.DistanceTo(pts[i]);
+        return new ArcSeg(center, anchoredRadius, a0, sweep);
     }
 
-    private static bool TryCircumcenter(Point2 a, Point2 b, Point2 c, out Point2 center)
+    /// <summary>
+    /// Least-squares fit kružnice (Kåsa): minimizira Σ(x² + y² − 2·cx·x − 2·cy·y − k)².
+    /// Linearan sustav 3×3 — stabilan na šumovitom ulazu, za razliku od kružnice kroz
+    /// tri točke koja pri malom kutnom rasponu eksplodira.
+    /// </summary>
+    private static bool TryFitCircle(List<Point2> pts, int i, int j, out Point2 center, out double radius)
     {
-        var d = 2.0 * ((a.X * (b.Y - c.Y)) + (b.X * (c.Y - a.Y)) + (c.X * (a.Y - b.Y)));
-        if (Math.Abs(d) < 1e-12)
+        center = default;
+        radius = 0.0;
+
+        double sx = 0, sy = 0, sz = 0, sxx = 0, syy = 0, sxy = 0, sxz = 0, syz = 0;
+        var n = j - i + 1;
+        for (var k = i; k <= j; k++)
         {
-            center = default;
+            var x = pts[k].X;
+            var y = pts[k].Y;
+            var z = (x * x) + (y * y);
+            sx += x;
+            sy += y;
+            sz += z;
+            sxx += x * x;
+            syy += y * y;
+            sxy += x * y;
+            sxz += x * z;
+            syz += y * z;
+        }
+
+        // Sustav: [sxx sxy sx][a]   [sxz]
+        //         [sxy syy sy][b] = [syz]     gdje je centar = (a/2, b/2)
+        //         [sx  sy  n ][c]   [sz ]
+        Span<double> m = stackalloc double[12]
+        {
+            sxx, sxy, sx, sxz,
+            sxy, syy, sy, syz,
+            sx,  sy,  n,  sz,
+        };
+
+        // Gaussova eliminacija s parcijalnim pivotiranjem.
+        for (var col = 0; col < 3; col++)
+        {
+            var pivot = col;
+            for (var row = col + 1; row < 3; row++)
+            {
+                if (Math.Abs(m[(row * 4) + col]) > Math.Abs(m[(pivot * 4) + col]))
+                {
+                    pivot = row;
+                }
+            }
+
+            if (Math.Abs(m[(pivot * 4) + col]) < 1e-12)
+            {
+                return false; // singularno — točke su kolinearne
+            }
+
+            if (pivot != col)
+            {
+                for (var c = 0; c < 4; c++)
+                {
+                    (m[(col * 4) + c], m[(pivot * 4) + c]) = (m[(pivot * 4) + c], m[(col * 4) + c]);
+                }
+            }
+
+            for (var row = col + 1; row < 3; row++)
+            {
+                var factor = m[(row * 4) + col] / m[(col * 4) + col];
+                for (var c = col; c < 4; c++)
+                {
+                    m[(row * 4) + c] -= factor * m[(col * 4) + c];
+                }
+            }
+        }
+
+        Span<double> solution = stackalloc double[3];
+        for (var row = 2; row >= 0; row--)
+        {
+            var sum = m[(row * 4) + 3];
+            for (var c = row + 1; c < 3; c++)
+            {
+                sum -= m[(row * 4) + c] * solution[c];
+            }
+
+            solution[row] = sum / m[(row * 4) + row];
+        }
+
+        var cx = solution[0] / 2.0;
+        var cy = solution[1] / 2.0;
+        var rSquared = solution[2] + (cx * cx) + (cy * cy);
+        if (rSquared <= 0 || !double.IsFinite(rSquared))
+        {
             return false;
         }
 
-        var aa = (a.X * a.X) + (a.Y * a.Y);
-        var bb = (b.X * b.X) + (b.Y * b.Y);
-        var cc = (c.X * c.X) + (c.Y * c.Y);
-        center = new Point2(
-            ((aa * (b.Y - c.Y)) + (bb * (c.Y - a.Y)) + (cc * (a.Y - b.Y))) / d,
-            ((aa * (c.X - b.X)) + (bb * (a.X - c.X)) + (cc * (b.X - a.X))) / d);
-        return true;
+        center = new Point2(cx, cy);
+        radius = Math.Sqrt(rSquared);
+        return double.IsFinite(radius);
     }
+
 }

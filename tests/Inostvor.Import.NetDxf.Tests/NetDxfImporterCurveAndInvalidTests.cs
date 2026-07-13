@@ -94,7 +94,7 @@ public sealed class NetDxfImporterCurveAndInvalidTests
 
         stopwatch.Stop();
         r.Success.ShouldBeFalse();
-        r.Error.ShouldContain("EOF"); // pao je na predprovjeri, ne na timeoutu
+        r.Error.ShouldNotBeNull().ShouldContain("EOF"); // pao je na predprovjeri, ne na timeoutu
         stopwatch.ElapsedMilliseconds.ShouldBeLessThan(1000);
     }
 

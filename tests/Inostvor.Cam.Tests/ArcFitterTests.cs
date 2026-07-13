@@ -27,7 +27,9 @@ public sealed class ArcFitterTests
         arc.Center.X.ShouldBe(10, 1e-6);
         arc.Center.Y.ShouldBe(20, 1e-6);
         arc.Radius.ShouldBe(15, 1e-6);
-        arc.StartPoint.ShouldBe(points[0]);   // krajevi EGZAKTNI
+        // Krajevi luka sidre se na ulazne točke; usporedba s tolerancijom jer se luk
+        // rekonstruira iz centra i kuta (bit-identičnost nije realna ni potrebna).
+        arc.StartPoint.AlmostEquals(points[0], 1e-9).ShouldBeTrue();
         arc.EndPoint.AlmostEquals(points[^1], 1e-9).ShouldBeTrue();
     }
 
