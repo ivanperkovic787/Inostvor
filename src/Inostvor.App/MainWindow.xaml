@@ -26,6 +26,13 @@
           <TextBlock Text="Otvori DXF" />
         </StackPanel>
       </Button>
+      <Button Command="{x:Bind ViewModel.SaveProjectCommand}" ToolTipService.ToolTip="Spremi projekt (.ino)">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <FontIcon Glyph="&#xE74E;" FontSize="14" />
+          <TextBlock Text="Spremi" />
+        </StackPanel>
+      </Button>
+      <AppBarSeparator />
       <Button Command="{x:Bind ViewModel.ExportGCodeCommand}" ToolTipService.ToolTip="Izvezi G-kod za aktivni stroj">
         <StackPanel Orientation="Horizontal" Spacing="6">
           <FontIcon Glyph="&#xE74E;" FontSize="14" />

@@ -16,6 +16,9 @@ using Inostvor.Geometry.Contours;
 using Inostvor.Geometry.Rules;
 using Inostvor.Geometry.Validation;
 using Inostvor.Import.NetDxf;
+using Inostvor.Data;
+using Inostvor.Data.Project;
+using Inostvor.Data.Sqlite;
 using Inostvor.Post;
 using Inostvor.Post.Plugins;
 using Inostvor.Sdk;
@@ -107,6 +110,24 @@ public partial class App : Application
         builder.Services.AddSingleton<IFileSaveService>(
             new FileSaveService(() => WinRT.Interop.WindowNative.GetWindowHandle(((App)Current)._window!)));
 
+        // Persistencija (M8, ADR-005): projekt = .ino datoteka (jedina istina korisnikova rada);
+        // SQLite = aplikacijska razina (biblioteke profila/tehnologija, postavke).
+        var appData = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Inostvor");
+        Directory.CreateDirectory(appData);
+
+        builder.Services.AddSingleton(new SqliteDatabase(
+            "Data Source=" + Path.Combine(appData, "inostvor.db")));
+        builder.Services.AddSingleton<IMachineProfileRepository, MachineProfileRepository>();
+        builder.Services.AddSingleton<ITechnologyRepository, TechnologyRepository>();
+        builder.Services.AddSingleton<ISettingsRepository, SettingsRepository>();
+        builder.Services.AddSingleton<ISettingsPortService, SettingsPortService>();
+        builder.Services.AddSingleton<IProjectStore, ProjectStore>();
+        builder.Services.AddSingleton<IAutoSaveService>(new AutoSaveService(appData));
+        builder.Services.AddSingleton<ProjectViewModel>();
+        builder.Services.AddSingleton<MachineProfileManagerViewModel>();
+        builder.Services.AddSingleton<TechnologyLibraryViewModel>();
+
         builder.Services.AddSingleton<ConsoleViewModel>();
         builder.Services.AddSingleton<MainViewModel>();
 
@@ -124,6 +145,22 @@ public partial class App : Application
         {
             plugin.Initialize(pluginHost);
         }
+
+        // Prvi start: napuni biblioteku ugrađenim profilima strojeva.
+        var machines = _host.Services.GetRequiredService<IMachineProfileRepository>();
+        if (machines.GetAll().Count == 0)
+        {
+            foreach (var profile in BuiltInMachineProfiles.All)
+            {
+                machines.Save(profile);
+            }
+
+            logger.LogInformation("Biblioteka strojeva inicijalizirana ({Count} ugrađenih profila).",
+                BuiltInMachineProfiles.All.Count);
+        }
+
+        // Auto Save: sentinel označava aktivnu sesiju; uredan izlaz ga briše.
+        _host.Services.GetRequiredService<IAutoSaveService>().MarkSessionStart();
 
         _window = new MainWindow();
         _window.Closed += (_, _) =>

@@ -49,11 +49,69 @@ public sealed partial class MainWindow : Window
             }
         };
 
+        // Auto Save svakih 60 s (samo ako ima uvezene geometrije; tiho na pogrešku).
+        _autoSaveTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(60) };
+        _autoSaveTimer.Tick += async (_, _) =>
+        {
+            try
+            {
+                await ViewModel.AutoSaveAsync();
+            }
+            catch (IOException)
+            {
+                // Autosave nikad ne smije srušiti rad korisnika.
+            }
+        };
+        _autoSaveTimer.Start();
+
+        Activated += OnFirstActivation;
+
         Closed += (_, _) =>
         {
             _simulationTicker.Stop();
+            _autoSaveTimer.Stop();
+            ViewModel.Project.MarkCleanExit(); // uredan izlaz → nema ponude oporavka
             _renderer.Dispose();
         };
+    }
+
+    private readonly DispatcherTimer _autoSaveTimer;
+    private bool _recoveryChecked;
+
+    /// <summary>Nakon pada prošle sesije ponudi oporavak zadnjeg autosavea.</summary>
+    private async void OnFirstActivation(object sender, WindowActivatedEventArgs e)
+    {
+        if (_recoveryChecked)
+        {
+            return;
+        }
+
+        _recoveryChecked = true;
+        Activated -= OnFirstActivation;
+
+        if (!ViewModel.Project.RecoveryAvailable)
+        {
+            return;
+        }
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = Content.XamlRoot,
+            Title = "Oporavak rada",
+            Content = "Prethodna sesija nije uredno završena. Želiš li otvoriti automatski spremljeni projekt?",
+            PrimaryButtonText = "Oporavi",
+            CloseButtonText = "Odbaci",
+            DefaultButton = ContentDialogButton.Primary,
+        };
+
+        if (await dialog.ShowAsync() == ContentDialogResult.Primary)
+        {
+            await ViewModel.OpenProjectAsync(ViewModel.Project.AutoSavePath);
+        }
+        else
+        {
+            ViewModel.Project.ClearAutoSave();
+        }
     }
 
     private readonly DispatcherTimer _simulationTicker;

@@ -19,6 +19,8 @@ public sealed class MainViewModelTests
     private readonly IToolpathGenerator _toolpath = Substitute.For<IToolpathGenerator>();
     private readonly IPostProcessorCatalog _catalog = Substitute.For<IPostProcessorCatalog>();
     private readonly IFileSaveService _fileSave = Substitute.For<IFileSaveService>();
+    private readonly IProjectStore _store = Substitute.For<IProjectStore>();
+    private readonly IAutoSaveService _autoSave = Substitute.For<IAutoSaveService>();
 
     private MainViewModel Create()
     {
@@ -26,7 +28,7 @@ public sealed class MainViewModelTests
             .Returns(new GeometryPipelineResult([], [], new ValidationReport([])));
         _toolpath.Generate(Arg.Any<IReadOnlyList<Core.Model.Geometry.Contour>>(), Arg.Any<TechnologySettings>())
             .Returns(ToolpathProgram.Empty);
-        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, _catalog, _fileSave, NullLogger<MainViewModel>.Instance);
+        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, _catalog, _fileSave, new ProjectViewModel(_store, _autoSave), NullLogger<MainViewModel>.Instance);
     }
 
     [Fact]

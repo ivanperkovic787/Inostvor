@@ -207,6 +207,11 @@ Simple, Holes, Nested, OpenContours, Decorative, LargeFiles, Invalid, Regression
   autor, autorska prava, kratki opis, pozdravna poruka korisnicima. Ime autora
   nije dio naziva programa (Inostvor).
 - **Plugin DLL distribucija** postprocesora: vidi ADR-004.
+- **About dijalog** (model gotov u M8: ViewModels/AboutInfo.cs — naziv, verzija,
+  autor, godina, copyright, pozdravna poruka, licence otvorenog koda). Preostaje UI.
+- **Budući moduli kroz ProjectDocument.Extensions** (ADR-005), bez promjene formata:
+  nesting, tabovi (micro-joints), višestruki limovi, ostaci lima, baza materijala,
+  optimizacija proizvodnje.
 - **Grafički editor postprocesora** (nakon V1): vizualno uređivanje dijalekta s
   live pregledom generiranog G-koda. Preduvjet ugrađen u dizajn M7: deklarativni
   opis dijalekta (predlošci kao podaci) umjesto isključivo koda.

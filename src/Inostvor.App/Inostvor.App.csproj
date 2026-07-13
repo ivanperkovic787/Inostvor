@@ -22,6 +22,7 @@
     <ProjectReference Include="..\Inostvor.Rendering\Inostvor.Rendering.csproj" />
     <ProjectReference Include="..\Inostvor.Cam\Inostvor.Cam.csproj" />
     <ProjectReference Include="..\Inostvor.Post\Inostvor.Post.csproj" />
+    <ProjectReference Include="..\Inostvor.Data\Inostvor.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

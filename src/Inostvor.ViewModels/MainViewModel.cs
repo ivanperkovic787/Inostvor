@@ -5,6 +5,8 @@ using Inostvor.Core.Abstractions;
 using Inostvor.Core.Model.Geometry;
 using Inostvor.Core.Model.Import;
 using Inostvor.Core.Model.Toolpath;
+using Inostvor.Core.Model.Machines;
+using Inostvor.Core.Model.Project;
 using Inostvor.Core.Model.Validation;
 using Inostvor.Post;
 using Inostvor.Rendering.Scene;
@@ -26,6 +28,7 @@ public sealed partial class MainViewModel : ObservableObject
     private readonly IToolpathGenerator _toolpathGenerator;
     private readonly IPostProcessorCatalog _postCatalog;
     private readonly IFileSaveService _fileSave;
+    private readonly ProjectViewModel _project;
     private readonly ILogger<MainViewModel> _logger;
 
     [ObservableProperty]
@@ -56,8 +59,72 @@ public sealed partial class MainViewModel : ObservableObject
         ExportGCodeCommand.NotifyCanExecuteChanged();
     }
 
-    /// <summary>Aktivni stroj (M8 donosi persistenciju i UI izbor; V1: EC300 profil).</summary>
-    public Core.Model.Machines.MachineProfile ActiveMachine { get; } = BuiltInMachineProfiles.Ec300Plasma;
+    public ProjectViewModel Project => _project;
+
+    /// <summary>Aktivni stroj projekta; mijenja se odabirom profila iz biblioteke.</summary>
+    [ObservableProperty]
+    private MachineProfile _activeMachine = BuiltInMachineProfiles.Ec300Plasma;
+
+    /// <summary>Aktivna tehnologija projekta (iz biblioteke ili profila).</summary>
+    [ObservableProperty]
+    private TechnologySettings _activeTechnology = TechnologySettings.Default;
+
+    private ProjectDocument CurrentDocument() => _project.BuildDocument(
+        ActiveTechnology, ActiveMachine, Simulation.CurrentTime, Simulation.SpeedMultiplier);
+
+    [RelayCommand]
+    private async Task SaveProjectAsync()
+    {
+        var path = _project.FilePath
+            ?? await _fileSave.PickSavePathAsync(_project.Name, ".ino").ConfigureAwait(true);
+        if (path is null)
+        {
+            return;
+        }
+
+        await _project.SaveAsync(CurrentDocument(), path).ConfigureAwait(true);
+        _logger.LogInformation("Projekt spremljen: {Path}", path);
+        StatusText = FormattableString.Invariant($"Projekt spremljen: {Path.GetFileName(path)}");
+    }
+
+    /// <summary>Otvara .ino projekt i regenerira derivirane podatke iz spremljenih DXF izvora.</summary>
+    public async Task OpenProjectAsync(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+
+        var loaded = await _project.LoadAsync(path).ConfigureAwait(true);
+        _project.ApplyLoaded(loaded, path == _project.AutoSavePath ? null : path);
+        ActiveMachine = loaded.Document.Machine;
+        ActiveTechnology = loaded.Document.Technology;
+
+        // Derivirani podaci se NE spremaju — regeneriraju se determinističkim cjevovodom.
+        foreach (var source in loaded.Document.DxfSources)
+        {
+            await ProcessDxfAsync(source.SourcePath).ConfigureAwait(true);
+        }
+
+        if (loaded.Document.SimulationTimeSeconds is { } time)
+        {
+            Simulation.SpeedMultiplier = loaded.Document.SimulationSpeed;
+            Simulation.CurrentTime = time;
+        }
+
+        _logger.LogInformation(
+            "Projekt otvoren: {Name} (format v{Version}, {Sources} DXF izvora).",
+            loaded.Document.Name, loaded.FormatVersion, loaded.Document.DxfSources.Count);
+        StatusText = FormattableString.Invariant($"Projekt otvoren: {loaded.Document.Name}");
+    }
+
+    /// <summary>Autosave; poziva se periodički iz UI-ja dok postoji uvezena geometrija.</summary>
+    public async Task AutoSaveAsync()
+    {
+        if (_project.DxfSources.Count == 0)
+        {
+            return;
+        }
+
+        await _project.AutoSaveAsync(CurrentDocument()).ConfigureAwait(true);
+    }
 
     private bool CanExportGCode() => LastToolpath is not null && LastToolpath.Sequences.Count > 0;
 
@@ -116,6 +183,7 @@ public sealed partial class MainViewModel : ObservableObject
         IToolpathGenerator toolpathGenerator,
         IPostProcessorCatalog postCatalog,
         IFileSaveService fileSave,
+        ProjectViewModel project,
         ILogger<MainViewModel> logger)
     {
         ArgumentNullException.ThrowIfNull(undoService);
@@ -125,6 +193,7 @@ public sealed partial class MainViewModel : ObservableObject
         ArgumentNullException.ThrowIfNull(toolpathGenerator);
         ArgumentNullException.ThrowIfNull(postCatalog);
         ArgumentNullException.ThrowIfNull(fileSave);
+        ArgumentNullException.ThrowIfNull(project);
         ArgumentNullException.ThrowIfNull(logger);
 
         _undoService = undoService;
@@ -134,6 +203,7 @@ public sealed partial class MainViewModel : ObservableObject
         _toolpathGenerator = toolpathGenerator;
         _postCatalog = postCatalog;
         _fileSave = fileSave;
+        _project = project;
         _logger = logger;
 
         _undoService.StateChanged += (_, _) =>
@@ -153,7 +223,13 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         StatusText = FormattableString.Invariant($"Učitavanje: {Path.GetFileName(path)}…");
+        _project.AddDxf(path);
+        await ProcessDxfAsync(path).ConfigureAwait(true);
+    }
 
+    /// <summary>Uvoz + geometrijski cjevovod + putanja za jedan DXF (dijeli ga otvaranje projekta).</summary>
+    private async Task ProcessDxfAsync(string path)
+    {
         // Import je CPU/IO posao — ne blokira UI thread.
         var result = await Task.Run(() => _importer.Import(path)).ConfigureAwait(true);
 
@@ -224,7 +300,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        var toolpath = await Task.Run(() => _toolpathGenerator.Generate(pipeline.Contours, TechnologySettings.Default)).ConfigureAwait(true);
+        var toolpath = await Task.Run(() => _toolpathGenerator.Generate(pipeline.Contours, ActiveTechnology)).ConfigureAwait(true);
         LastToolpath = toolpath;
         _logger.LogInformation(
             "Putanja: {Sequences} sekvenci (pierce), rez {CutLength:0.#} mm ({CutTime:0.#} s), brzi hodovi {RapidLength:0.#} mm ({RapidTime:0.#} s), probijanja {PierceTime:0.#} s — ukupno {Total:0.#} s.",

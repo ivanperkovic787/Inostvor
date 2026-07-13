@@ -19,15 +19,7 @@ public sealed class FileSaveService : IFileSaveService
     {
         ArgumentNullException.ThrowIfNull(content);
 
-        var picker = new FileSavePicker
-        {
-            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
-            SuggestedFileName = suggestedFileName,
-        };
-        picker.FileTypeChoices.Add("G-kod", new List<string> { extension });
-        WinRT.Interop.InitializeWithWindow.Initialize(picker, _windowHandleProvider());
-
-        var file = await picker.PickSaveFileAsync();
+        var file = await PickAsync(suggestedFileName, extension);
         if (file is null)
         {
             return null;
@@ -35,5 +27,26 @@ public sealed class FileSaveService : IFileSaveService
 
         await FileIO.WriteTextAsync(file, content);
         return file.Path;
+    }
+
+    public async Task<string?> PickSavePathAsync(string suggestedFileName, string extension)
+    {
+        var file = await PickAsync(suggestedFileName, extension);
+        return file?.Path;
+    }
+
+    private async Task<StorageFile?> PickAsync(string suggestedFileName, string extension)
+    {
+        var picker = new FileSavePicker
+        {
+            SuggestedStartLocation = PickerLocationId.DocumentsLibrary,
+            SuggestedFileName = suggestedFileName,
+        };
+        picker.FileTypeChoices.Add(
+            extension == ".ino" ? "Inostvor projekt" : "G-kod",
+            new List<string> { extension });
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, _windowHandleProvider());
+
+        return await picker.PickSaveFileAsync();
     }
 }

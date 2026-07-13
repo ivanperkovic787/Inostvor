@@ -1,8 +1,11 @@
 namespace Inostvor.Core.Abstractions;
 
-/// <summary>Spremanje tekstualne datoteke kroz sistemski dijalog.</summary>
+/// <summary>Spremanje datoteka kroz sistemski dijalog.</summary>
 public interface IFileSaveService
 {
-    /// <summary>Vraća putanju spremljene datoteke ili null ako je korisnik odustao.</summary>
+    /// <summary>Zapisuje tekst u odabranu datoteku; null ako je korisnik odustao.</summary>
     Task<string?> SaveTextAsync(string suggestedFileName, string extension, string content);
+
+    /// <summary>Samo odabir putanje (sadržaj zapisuje pozivatelj — npr. binarni .ino kontejner).</summary>
+    Task<string?> PickSavePathAsync(string suggestedFileName, string extension);
 }
