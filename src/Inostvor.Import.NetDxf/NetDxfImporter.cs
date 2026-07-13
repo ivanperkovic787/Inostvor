@@ -10,6 +10,15 @@
 //     IsFullEllipse), Insert (Block.Origin/Entities, Position, Scale, Rotation)
 //   - EntityObject.Layer (Name/IsVisible/IsFrozen), .Handle, .Normal
 // Svako odstupanje API-ja lomi se ISKLJUČIVO ovdje — popravak je lokalan.
+//
+// POZNATA OGRANIČENJA netDxf-a (utvrđena na prvom buildu):
+//   1. SPLINE samo s fit točkama (bez kontrolnih točaka i knot vektora) se NE
+//      učitava. AutoCAD takve splineove piše legalno i sam izračuna krivulju.
+//      Ako korisnici na to naiđu, rješenje je drugi importer kroz isti plugin
+//      kontrakt (ADR-002), ne zaobilaženje ovdje.
+//   2. Odrezana datoteka (bez završnog EOF markera) tjera parser u BESKONAČNO
+//      čekanje. Zato uvoz ima predprovjeru strukture (HasEofMarker) i tvrdi
+//      timeout (LoadWithTimeout) — aplikacija se nikad ne smije zamrznuti.
 // ============================================================================
 using netDxf;
 using netDxf.Entities;
@@ -68,13 +77,25 @@ public sealed class NetDxfImporter : IDxfImporter
                     $"DXF verzija '{version}' nije podržana netDxf parserom (minimalno AutoCad2000). Starije datoteke (R12/R13/R14) spremiti u noviji format ili koristiti drugi importer."));
             }
 
-            var doc = DxfDocument.Load(filePath);
+            // OBRANA 1: struktura. Odrezana datoteka (bez završnog EOF markera) tjera
+            // netDxf parser u beskonačno čekanje — hvatamo je prije nego uđe u parser.
+            if (!HasEofMarker(filePath))
+            {
+                return ImportResult.Fail(
+                    "DXF datoteka je nepotpuna (nedostaje završni EOF marker) — vjerojatno oštećena ili prekinut prijenos.");
+            }
+
+            var doc = LoadWithTimeout(filePath);
             if (doc is null)
             {
                 return ImportResult.Fail("netDxf nije uspio učitati datoteku (oštećena ili nevaljana struktura).");
             }
 
             return MapDocument(doc);
+        }
+        catch (TimeoutException ex)
+        {
+            return ImportResult.Fail(ex.Message);
         }
         catch (Exception ex)
         {
@@ -597,5 +618,62 @@ public sealed class NetDxfImporter : IDxfImporter
         {
             warnings.Add(ImportWarningCodes.NonPlanarFlattened, "Entitet s Z ≠ 0 spljošten u XY ravninu.", entity.Handle);
         }
+    }
+    /// <summary>
+    /// OBRANA 1: brza provjera da datoteka završava DXF EOF markerom. Čita samo
+    /// zadnjih nekoliko stotina bajtova — jeftino i hvata odrezane datoteke.
+    /// </summary>
+    private static bool HasEofMarker(string filePath)
+    {
+        const int TailBytes = 512;
+
+        using var stream = File.OpenRead(filePath);
+        var length = stream.Length;
+        if (length == 0)
+        {
+            return false;
+        }
+
+        var count = (int)Math.Min(TailBytes, length);
+        stream.Seek(-count, SeekOrigin.End);
+        var buffer = new byte[count];
+        stream.ReadExactly(buffer);
+
+        var tail = System.Text.Encoding.ASCII.GetString(buffer);
+        foreach (var line in tail.Split('\n'))
+        {
+            if (line.Trim().Equals("EOF", StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// OBRANA 2: tvrdi vremenski limit. Nijedna predprovjera ne može pokriti sve
+    /// načine na koje parser može zapeti na patološkom ulazu, pa uvoz koji premaši
+    /// limit prekidamo jasnom porukom — aplikacija se NIKAD ne zamrzava.
+    ///
+    /// Napomena: netDxf nema mehanizam prekida, pa dretva ostaje visjeti dok proces
+    /// traje. To je prihvatljivo (jedna zaglavljena dretva umjesto zamrznute
+    /// aplikacije); alternativa bi bio zaseban proces, što V1 ne opravdava.
+    /// </summary>
+    private DxfDocument? LoadWithTimeout(string filePath)
+    {
+        if (_settings.TimeoutSeconds <= 0)
+        {
+            return DxfDocument.Load(filePath);
+        }
+
+        var task = Task.Run(() => DxfDocument.Load(filePath));
+        if (task.Wait(TimeSpan.FromSeconds(_settings.TimeoutSeconds)))
+        {
+            return task.Result;
+        }
+
+        throw new TimeoutException(FormattableString.Invariant(
+            $"Uvoz DXF-a prekinut nakon {_settings.TimeoutSeconds} s — datoteka je prevelika ili oštećena."));
     }
 }

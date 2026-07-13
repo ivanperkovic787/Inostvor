@@ -43,6 +43,18 @@ izmjene CAM jezgre.
 3. **HATCH, TEXT, DIMENSION** i ostali ne-konturni entiteti → UNSUPPORTED_ENTITY
    upozorenje (namjerno: nisu rezna geometrija).
 
+## POTVRĐENA ograničenja netDxf-a (prvi build, 2026-07-13)
+
+1. **SPLINE bez kontrolnih točaka se ne učitava.** DXF dopušta spline zapisan samo
+   fit točkama (AutoCAD sam izračuna krivulju); netDxf traži kontrolne točke + knot
+   vektor. Testni podaci regenerirani s kontrolnim točkama. Ako se u praksi pojave
+   fit-points-only splineovi iz nekog CAD-a → drugi importer kroz plugin kontrakt.
+2. **Odrezana datoteka visi zauvijek.** DXF bez završnog `EOF` markera tjera parser
+   u beskonačno čekanje. Importer zato ima DVIJE razine obrane: predprovjeru EOF
+   markera (brza, hvata većinu oštećenja) i tvrdi timeout od 30 s
+   (`ImportSettings.TimeoutSeconds`). Regresijski test provjerava da uvoz
+   odrezane datoteke padne u manje od sekunde.
+
 ## netDxf API rizici (verificirati na prvom Windows buildu)
 
 Pinnan **netDxf 3.0.1**. Bez mogućnosti kompilacije ovdje, sljedeće pretpostavke

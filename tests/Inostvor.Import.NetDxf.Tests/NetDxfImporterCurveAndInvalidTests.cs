@@ -83,10 +83,19 @@ public sealed class NetDxfImporterCurveAndInvalidTests
     }
 
     [Fact]
-    public void OdrezanaDatoteka_Fail()
+    public void OdrezanaDatoteka_Fail_IBrzo()
     {
+        // REGRESIJSKI TEST: netDxf parser na odrezanoj datoteci (bez EOF markera) ulazi
+        // u BESKONAČNO čekanje. Importer to mora uhvatiti predprovjerom strukture i
+        // pasti ODMAH — inače bi se aplikacija zamrznula na oštećenoj datoteci korisnika.
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         var r = Import("Invalid", "truncated.dxf");
+
+        stopwatch.Stop();
         r.Success.ShouldBeFalse();
+        r.Error.ShouldContain("EOF"); // pao je na predprovjeri, ne na timeoutu
+        stopwatch.ElapsedMilliseconds.ShouldBeLessThan(1000);
     }
 
     [Fact]

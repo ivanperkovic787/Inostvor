@@ -12,5 +12,13 @@ public sealed record ImportSettings
     /// <summary>Gornja granica broja upozorenja (datoteka s 50 000 degeneriranih entiteta ne smije zatrpati memoriju).</summary>
     public int MaxWarnings { get; init; } = 200;
 
+    /// <summary>
+    /// Tvrdi vremenski limit uvoza JEDNE datoteke. [s]
+    /// Oštećena DXF datoteka (npr. odrezana, bez EOF markera) može natjerati parser
+    /// u beskonačno čekanje — aplikacija se u tom slučaju NE SMIJE zamrznuti.
+    /// 0 = bez ograničenja (samo za testove/benchmarke).
+    /// </summary>
+    public int TimeoutSeconds { get; init; } = 30;
+
     public static ImportSettings Default { get; } = new();
 }
