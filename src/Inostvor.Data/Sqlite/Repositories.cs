@@ -89,11 +89,11 @@ public sealed class SettingsRepository : ISettingsRepository
         _db = db;
     }
 
-    public string? Get(string key)
+    public string? GetValue(string key)
         => _db.Connection.QuerySingleOrDefault<string>(
             "SELECT value FROM settings WHERE key = @key", new { key });
 
-    public void Set(string key, string value)
+    public void SetValue(string key, string value)
         => _db.Connection.Execute(
             "INSERT INTO settings (key, value) VALUES (@key, @value) " +
             "ON CONFLICT(key) DO UPDATE SET value = @value",

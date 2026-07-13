@@ -29,7 +29,7 @@ public sealed class UndoRedoService : IUndoService
 
     public event EventHandler? StateChanged;
 
-    public void Do(IUndoableCommand command)
+    public void Execute(IUndoableCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
 

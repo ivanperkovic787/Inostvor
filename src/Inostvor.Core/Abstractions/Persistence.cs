@@ -45,9 +45,9 @@ public interface ITechnologyRepository
 /// <summary>Key-value postavke aplikacije (SQLite).</summary>
 public interface ISettingsRepository
 {
-    string? Get(string key);
+    string? GetValue(string key);
 
-    void Set(string key, string value);
+    void SetValue(string key, string value);
 }
 
 /// <summary>Prijenos postavki među računalima: profili + tehnologije + postavke u jednu JSON datoteku.</summary>

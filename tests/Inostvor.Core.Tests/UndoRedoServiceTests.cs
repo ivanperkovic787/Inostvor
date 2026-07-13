@@ -13,7 +13,7 @@ public sealed class UndoRedoServiceTests
     {
         var sut = new UndoRedoService();
 
-        sut.Do(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("A", _journal));
 
         _journal.ShouldBe(["A:do"]);
         sut.CanUndo.ShouldBeTrue();
@@ -26,7 +26,7 @@ public sealed class UndoRedoServiceTests
     {
         var sut = new UndoRedoService();
 
-        Should.Throw<ArgumentNullException>(() => sut.Do(null!));
+        Should.Throw<ArgumentNullException>(() => sut.Execute(null!));
     }
 
     [Fact]
@@ -35,7 +35,7 @@ public sealed class UndoRedoServiceTests
         var sut = new UndoRedoService();
 
         Should.Throw<InvalidOperationException>(() =>
-            sut.Do(new TestCommand("X", _journal, () => throw new InvalidOperationException("boom"))));
+            sut.Execute(new TestCommand("X", _journal, () => throw new InvalidOperationException("boom"))));
 
         sut.CanUndo.ShouldBeFalse();
         sut.CanRedo.ShouldBeFalse();
@@ -45,8 +45,8 @@ public sealed class UndoRedoServiceTests
     public void Undo_PonistavaZadnjuNaredbu_IPrebacujeJeURedo()
     {
         var sut = new UndoRedoService();
-        sut.Do(new TestCommand("A", _journal));
-        sut.Do(new TestCommand("B", _journal));
+        sut.Execute(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("B", _journal));
 
         sut.Undo();
 
@@ -60,7 +60,7 @@ public sealed class UndoRedoServiceTests
     public void Redo_PonovnoIzvrsavaPonistenuNaredbu()
     {
         var sut = new UndoRedoService();
-        sut.Do(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("A", _journal));
         sut.Undo();
 
         sut.Redo();
@@ -74,10 +74,10 @@ public sealed class UndoRedoServiceTests
     public void Do_NakonUndoa_BriseRedoPovijest()
     {
         var sut = new UndoRedoService();
-        sut.Do(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("A", _journal));
         sut.Undo();
 
-        sut.Do(new TestCommand("B", _journal));
+        sut.Execute(new TestCommand("B", _journal));
 
         sut.CanRedo.ShouldBeFalse();
         sut.RedoDescription.ShouldBeNull();
@@ -103,9 +103,9 @@ public sealed class UndoRedoServiceTests
     public void Do_IznadKapaciteta_IzbacujeNajstarijuNaredbu()
     {
         var sut = new UndoRedoService(capacity: 2);
-        sut.Do(new TestCommand("A", _journal));
-        sut.Do(new TestCommand("B", _journal));
-        sut.Do(new TestCommand("C", _journal));
+        sut.Execute(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("B", _journal));
+        sut.Execute(new TestCommand("C", _journal));
 
         sut.Undo(); // C
         sut.Undo(); // B
@@ -127,7 +127,7 @@ public sealed class UndoRedoServiceTests
         var raised = 0;
         sut.StateChanged += (_, _) => raised++;
 
-        sut.Do(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("A", _journal));
         sut.Undo();
         sut.Redo();
         sut.Clear();
@@ -139,8 +139,8 @@ public sealed class UndoRedoServiceTests
     public void Clear_PrazniObjePovijesti()
     {
         var sut = new UndoRedoService();
-        sut.Do(new TestCommand("A", _journal));
-        sut.Do(new TestCommand("B", _journal));
+        sut.Execute(new TestCommand("A", _journal));
+        sut.Execute(new TestCommand("B", _journal));
         sut.Undo();
 
         sut.Clear();

@@ -92,13 +92,13 @@ public sealed class SqliteRepositoryTests : IDisposable
     public void Settings_KeyValue()
     {
         var repo = new SettingsRepository(_db);
-        repo.Get("tema").ShouldBeNull();
+        repo.GetValue("tema").ShouldBeNull();
 
-        repo.Set("tema", "tamna");
-        repo.Get("tema").ShouldBe("tamna");
+        repo.SetValue("tema", "tamna");
+        repo.GetValue("tema").ShouldBe("tamna");
 
-        repo.Set("tema", "svijetla");
-        repo.Get("tema").ShouldBe("svijetla");
+        repo.SetValue("tema", "svijetla");
+        repo.GetValue("tema").ShouldBe("svijetla");
     }
 
     [Fact]

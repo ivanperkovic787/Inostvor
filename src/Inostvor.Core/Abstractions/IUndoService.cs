@@ -2,7 +2,7 @@ namespace Inostvor.Core.Abstractions;
 
 /// <summary>
 /// Središnji Undo/Redo servis. Jedina ispravna ulazna točka za izvršavanje
-/// <see cref="IUndoableCommand"/> naredbi je <see cref="Do"/>.
+/// <see cref="IUndoableCommand"/> naredbi je <see cref="Execute"/>.
 /// </summary>
 public interface IUndoService
 {
@@ -17,7 +17,7 @@ public interface IUndoService
     string? RedoDescription { get; }
 
     /// <summary>Izvršava naredbu i stavlja je na undo stack. Briše redo povijest.</summary>
-    void Do(IUndoableCommand command);
+    void Execute(IUndoableCommand command);
 
     /// <summary>Poništava zadnju naredbu. Baca <see cref="InvalidOperationException"/> ako je <see cref="CanUndo"/> false.</summary>
     void Undo();
@@ -28,6 +28,6 @@ public interface IUndoService
     /// <summary>Briše cijelu povijest (npr. kod otvaranja novog dokumenta).</summary>
     void Clear();
 
-    /// <summary>Okida se nakon svake promjene stanja (Do/Undo/Redo/Clear) — UI osvježava gumbe.</summary>
+    /// <summary>Okida se nakon svake promjene stanja (Execute/Undo/Redo/Clear) — UI osvježava gumbe.</summary>
     event EventHandler? StateChanged;
 }
