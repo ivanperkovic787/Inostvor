@@ -10,9 +10,14 @@ public interface IProjectStore
     /// <summary>Trenutna verzija formata koju pisač proizvodi.</summary>
     int CurrentFormatVersion { get; }
 
-    Task SaveAsync(ProjectDocument document, string path);
+    /// <summary>Sprema projekt; <paramref name="cache"/> je OPCIONALAN (null = bez cachea).</summary>
+    Task SaveAsync(ProjectDocument document, string path, ToolpathCache? cache = null);
 
-    /// <summary>Učitava projekt; stariji formati se migriraju kroz lanac migracija.</summary>
+    /// <summary>
+    /// Učitava projekt; stariji formati se migriraju kroz lanac migracija.
+    /// Cache se vraća SAMO ako mu se hash ulaza i verzija cjevovoda podudaraju s
+    /// aktualnim stanjem — inače je LoadedProject.Cache null (pozivatelj regenerira).
+    /// </summary>
     Task<LoadedProject> LoadAsync(string path);
 }
 
@@ -23,7 +28,8 @@ public interface IMachineProfileRepository
 
     void Save(MachineProfile profile);
 
-    void Delete(string name);
+    /// <summary>Brisanje po stabilnom Id-u (ADR-006).</summary>
+    void Delete(Guid id);
 }
 
 /// <summary>Biblioteka tehnologija (SQLite, aplikacijska razina).</summary>

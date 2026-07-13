@@ -26,7 +26,8 @@ public sealed class SqliteDatabase : IDisposable
         command.CommandText = """
             CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS machine_profiles (
-                name TEXT PRIMARY KEY,
+                id   TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
                 json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS technologies (
                 id   TEXT PRIMARY KEY,

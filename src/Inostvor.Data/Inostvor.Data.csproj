@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Inostvor.Core\Inostvor.Core.csproj" />
+    <ProjectReference Include="..\Inostvor.Kernel\Inostvor.Kernel.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Dapper" />

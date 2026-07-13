@@ -7,8 +7,11 @@ namespace Inostvor.Core.Model.Machines;
 /// DIJALEKT kontrolera, profil opisuje stroj koji tim dijalektom govori.
 /// Jedan postprocesor → mnogo profila (Mach3 Plasma, Mach3 Router, Mach3 Mill…).
 /// </summary>
-public sealed record MachineProfile
+public sealed record MachineProfile : IIdentifiable
 {
+    /// <summary>Stabilan identitet (ADR-006): preživljava preimenovanje i prijenos među računalima.</summary>
+    public Guid Id { get; init; } = Guid.NewGuid();
+
     public required string Name { get; init; }
 
     public string Manufacturer { get; init; } = "";

@@ -72,6 +72,20 @@ public sealed partial class MainViewModel : ObservableObject
     private ProjectDocument CurrentDocument() => _project.BuildDocument(
         ActiveTechnology, ActiveMachine, Simulation.CurrentTime, Simulation.SpeedMultiplier);
 
+    /// <summary>Cache putanje za spremanje (ADR-006) — null ako putanje nema.</summary>
+    private ToolpathCache? CurrentCache()
+    {
+        if (LastToolpath is null || LastToolpath.Sequences.Count == 0)
+        {
+            return null;
+        }
+
+        return new ToolpathCache(
+            CacheKey.ComputeInputHash(_project.DxfSources, ActiveTechnology),
+            CacheKey.PipelineVersion,
+            LastToolpath);
+    }
+
     [RelayCommand]
     private async Task SaveProjectAsync()
     {
@@ -82,7 +96,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        await _project.SaveAsync(CurrentDocument(), path).ConfigureAwait(true);
+        await _project.SaveAsync(CurrentDocument(), path, CurrentCache()).ConfigureAwait(true);
         _logger.LogInformation("Projekt spremljen: {Path}", path);
         StatusText = FormattableString.Invariant($"Projekt spremljen: {Path.GetFileName(path)}");
     }
@@ -97,10 +111,18 @@ public sealed partial class MainViewModel : ObservableObject
         ActiveMachine = loaded.Document.Machine;
         ActiveTechnology = loaded.Document.Technology;
 
-        // Derivirani podaci se NE spremaju — regeneriraju se determinističkim cjevovodom.
+        // Geometrija se uvijek regenerira (potrebna je za prikaz i selekciju);
+        // PUTANJA se uzima iz cachea ako je hash valjan, inače se regenerira (ADR-006).
+        var useCache = loaded.Cache is not null;
         foreach (var source in loaded.Document.DxfSources)
         {
-            await ProcessDxfAsync(source.SourcePath).ConfigureAwait(true);
+            await ProcessDxfAsync(source.SourcePath, skipToolpath: useCache).ConfigureAwait(true);
+        }
+
+        if (loaded.Cache is not null)
+        {
+            LastToolpath = loaded.Cache.Program;
+            _logger.LogInformation("Putanja učitana iz cachea (hash valjan) — bez ponovnog izračuna.");
         }
 
         if (loaded.Document.SimulationTimeSeconds is { } time)
@@ -123,7 +145,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
 
-        await _project.AutoSaveAsync(CurrentDocument()).ConfigureAwait(true);
+        await _project.AutoSaveAsync(CurrentDocument(), CurrentCache()).ConfigureAwait(true);
     }
 
     private bool CanExportGCode() => LastToolpath is not null && LastToolpath.Sequences.Count > 0;
@@ -227,8 +249,8 @@ public sealed partial class MainViewModel : ObservableObject
         await ProcessDxfAsync(path).ConfigureAwait(true);
     }
 
-    /// <summary>Uvoz + geometrijski cjevovod + putanja za jedan DXF (dijeli ga otvaranje projekta).</summary>
-    private async Task ProcessDxfAsync(string path)
+    /// <summary>Uvoz + geometrijski cjevovod (+ putanja, osim ako je preuzeta iz cachea).</summary>
+    private async Task ProcessDxfAsync(string path, bool skipToolpath = false)
     {
         // Import je CPU/IO posao — ne blokira UI thread.
         var result = await Task.Run(() => _importer.Import(path)).ConfigureAwait(true);
@@ -291,6 +313,11 @@ public sealed partial class MainViewModel : ObservableObject
         StatusText = FormattableString.Invariant(
             $"Učitano: {Path.GetFileName(path)} — {pipeline.Contours.Count} kontura ({outer} vanjskih, {holes} rupa, {open} otvorenih)"
             + (pipeline.Report.HasErrors ? FormattableString.Invariant($", {pipeline.Report.ErrorCount} GREŠAKA") : string.Empty));
+
+        if (skipToolpath)
+        {
+            return; // putanja dolazi iz valjanog cachea
+        }
 
         // M5: putanja se generira samo kad validacija nema grešaka.
         if (pipeline.Report.HasErrors)

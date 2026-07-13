@@ -7,10 +7,11 @@ using Inostvor.Core.Model.Project;
 namespace Inostvor.Data.Project;
 
 /// <summary>
-/// .ino format (ADR-005): ZIP kontejner s
+/// .ino format (ADR-005, ADR-006): ZIP kontejner s
 ///   manifest.json  — {"formatVersion": N}
 ///   project.json   — ProjectDocument (enumi kao stringovi, uvlačeno)
 ///   dxf/&lt;ime&gt;    — ORIGINALNI bajtovi uvezenih DXF-ova
+///   cache/toolpath.json — OPCIONALNI izvedeni podaci (nije izvor istine)
 /// Odabran je ZIP+JSON jer je čitljiv standardnim alatima i za 10+ godina;
 /// derivirani podaci se ne spremaju (regeneriraju se deterministički iz izvora).
 /// Nepoznate sekcije u Extensions čuvaju se netaknute (forward compatibility).
@@ -28,7 +29,7 @@ public sealed class ProjectStore : IProjectStore
 
     public int CurrentFormatVersion => 1;
 
-    public async Task SaveAsync(ProjectDocument document, string path)
+    public async Task SaveAsync(ProjectDocument document, string path, ToolpathCache? cache = null)
     {
         ArgumentNullException.ThrowIfNull(document);
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
@@ -65,6 +66,15 @@ public sealed class ProjectStore : IProjectStore
             {
                 var toWrite = document with { DxfSources = containedSources };
                 await writer.WriteAsync(JsonSerializer.Serialize(toWrite, ProjectJson.Options));
+            }
+
+            // Opcionalni cache — spremljen odvojeno od istine; brisanje datoteke
+            // iz kontejnera ne mijenja projekt, samo usporava sljedeće otvaranje.
+            if (cache is not null)
+            {
+                var cacheEntry = zip.CreateEntry("cache/toolpath.json");
+                await using var cacheWriter = new StreamWriter(cacheEntry.Open());
+                await cacheWriter.WriteAsync(JsonSerializer.Serialize(cache, ProjectJson.Options));
             }
         }
 
@@ -131,6 +141,40 @@ public sealed class ProjectStore : IProjectStore
             extracted.Add(source with { SourcePath = target });
         }
 
-        return new LoadedProject(document with { DxfSources = extracted }, version);
+        var finalDocument = document with { DxfSources = extracted };
+
+        return new LoadedProject(finalDocument, version, ReadValidCache(zip, finalDocument));
+    }
+
+    /// <summary>
+    /// Cache se prihvaća SAMO ako se podudaraju (a) verzija cjevovoda i (b) hash svih
+    /// ulaza izračunat iz TRENUTNOG stanja projekta. Svaka nepodudarnost, neispravan
+    /// JSON ili nedostajuća datoteka → null (tiha regeneracija). Cache nikad ne smije
+    /// uzrokovati grešku otvaranja projekta.
+    /// </summary>
+    private static ToolpathCache? ReadValidCache(ZipArchive zip, ProjectDocument document)
+    {
+        var entry = zip.GetEntry("cache/toolpath.json");
+        if (entry is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            using var reader = new StreamReader(entry.Open());
+            var cache = JsonSerializer.Deserialize<ToolpathCache>(reader.ReadToEnd(), ProjectJson.Options);
+            if (cache is null || cache.PipelineVersion != CacheKey.PipelineVersion)
+            {
+                return null;
+            }
+
+            var expected = CacheKey.ComputeInputHash(document.DxfSources, document.Technology);
+            return string.Equals(cache.InputHash, expected, StringComparison.Ordinal) ? cache : null;
+        }
+        catch (JsonException)
+        {
+            return null; // oštećen cache = nema cachea
+        }
     }
 }

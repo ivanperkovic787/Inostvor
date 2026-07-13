@@ -28,13 +28,19 @@ public sealed class MachineProfileRepository : IMachineProfileRepository
     {
         ArgumentNullException.ThrowIfNull(profile);
         _db.Connection.Execute(
-            "INSERT INTO machine_profiles (name, json) VALUES (@Name, @Json) " +
-            "ON CONFLICT(name) DO UPDATE SET json = @Json",
-            new { profile.Name, Json = JsonSerializer.Serialize(profile, ProjectJson.Options) });
+            "INSERT INTO machine_profiles (id, name, json) VALUES (@Id, @Name, @Json) " +
+            "ON CONFLICT(id) DO UPDATE SET name = @Name, json = @Json",
+            new
+            {
+                Id = profile.Id.ToString("D"),
+                profile.Name,
+                Json = JsonSerializer.Serialize(profile, ProjectJson.Options),
+            });
     }
 
-    public void Delete(string name)
-        => _db.Connection.Execute("DELETE FROM machine_profiles WHERE name = @name", new { name });
+    /// <summary>Brisanje po STABILNOM Id-u (ADR-006) — preimenovanje ne razbija referencu.</summary>
+    public void Delete(Guid id)
+        => _db.Connection.Execute("DELETE FROM machine_profiles WHERE id = @id", new { id = id.ToString("D") });
 }
 
 /// <summary>Biblioteka tehnologija.</summary>

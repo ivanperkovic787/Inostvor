@@ -26,7 +26,7 @@ public sealed class ProjectStoreTests : IDisposable
     private static ProjectDocument Document(string dxfPath) => new()
     {
         Name = "Testni projekt",
-        DxfSources = [new ProjectDxfSource(Path.GetFileName(dxfPath), dxfPath)],
+        DxfSources = [ProjectDxfSource.Create(Path.GetFileName(dxfPath), dxfPath, CacheKey.HashFile(dxfPath))],
         Technology = TechnologySettings.Default with { KerfWidth = 1.7, CutOrderStrategyId = "nearest-neighbor" },
         Machine = new MachineProfile
         {

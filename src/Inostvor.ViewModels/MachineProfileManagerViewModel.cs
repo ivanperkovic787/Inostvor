@@ -63,7 +63,7 @@ public sealed partial class MachineProfileManagerViewModel : ObservableObject
             return;
         }
 
-        _repository.Delete(Selected.Name);
+        _repository.Delete(Selected.Id);
         Selected = null;
         Refresh();
     }

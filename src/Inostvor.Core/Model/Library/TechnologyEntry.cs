@@ -7,8 +7,9 @@ namespace Inostvor.Core.Model.Library;
 /// rezanja, primjenjiva na više projekata. Extra vreća prima parametre koje
 /// eksplicitna polja ne pokrivaju (proizvođačke tablice i sl.).
 /// </summary>
-public sealed record TechnologyEntry
+public sealed record TechnologyEntry : IIdentifiable
 {
+    /// <summary>Stabilan identitet (ADR-006).</summary>
     public Guid Id { get; init; } = Guid.NewGuid();
 
     public required string Name { get; init; }

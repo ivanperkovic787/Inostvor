@@ -14,5 +14,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\Inostvor.Data\Inostvor.Data.csproj" />
+    <ProjectReference Include="..\..\src\Inostvor.Kernel\Inostvor.Kernel.csproj" />
   </ItemGroup>
 </Project>

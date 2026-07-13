@@ -37,22 +37,28 @@ public sealed class SqliteRepositoryTests : IDisposable
         repo.Save(profile);
         var loaded = repo.GetAll().ShouldHaveSingleItem();
 
-        loaded.ShouldBe(profile with { Extra = loaded.Extra, DefaultTechnology = loaded.DefaultTechnology });
+        loaded.Id.ShouldBe(profile.Id); // stabilan identitet preživio round-trip
         loaded.HasThc.ShouldBeTrue();
         loaded.ProbeMacro.ShouldBe("M101");
         loaded.DefaultTechnology.KerfWidth.ShouldBe(1.4);
     }
 
     [Fact]
-    public void MachineProfile_UpsertPoImenu_IDelete()
+    public void MachineProfile_UpsertPoStabilnomIdu_PreimenovanjeNeStvaraDuplikat()
     {
         var repo = new MachineProfileRepository(_db);
-        repo.Save(new MachineProfile { Name = "A", PostProcessorId = "x" });
-        repo.Save(new MachineProfile { Name = "A", PostProcessorId = "y" }); // update
+        var profile = new MachineProfile { Name = "A", PostProcessorId = "x" };
+        repo.Save(profile);
 
-        repo.GetAll().ShouldHaveSingleItem().PostProcessorId.ShouldBe("y");
+        // Preimenovanje istog profila (isti Id) — mora UPDATEATI, ne stvoriti drugi zapis.
+        repo.Save(profile with { Name = "A (novo ime)", PostProcessorId = "y" });
 
-        repo.Delete("A");
+        var all = repo.GetAll().ShouldHaveSingleItem();
+        all.Id.ShouldBe(profile.Id);
+        all.Name.ShouldBe("A (novo ime)");
+        all.PostProcessorId.ShouldBe("y");
+
+        repo.Delete(profile.Id);
         repo.GetAll().ShouldBeEmpty();
     }
 

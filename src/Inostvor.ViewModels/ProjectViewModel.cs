@@ -44,9 +44,13 @@ public sealed partial class ProjectViewModel : ObservableObject
 
     public string AutoSavePath => _autoSave.AutoSavePath;
 
+    /// <summary>Stabilan Id projekta (ADR-006) — zadržava se kroz spremanja i preimenovanja.</summary>
+    public Guid Id { get; private set; } = Guid.NewGuid();
+
     public ProjectDocument BuildDocument(TechnologySettings technology, MachineProfile machine, double? simulationTime, double simulationSpeed)
         => new()
         {
+            Id = Id,
             Name = Name,
             DxfSources = DxfSources.ToList(),
             Technology = technology,
@@ -59,6 +63,7 @@ public sealed partial class ProjectViewModel : ObservableObject
     public void ApplyLoaded(LoadedProject loaded, string? path)
     {
         ArgumentNullException.ThrowIfNull(loaded);
+        Id = loaded.Document.Id;
         Name = loaded.Document.Name;
         FilePath = path;
         DxfSources.Clear();
@@ -67,16 +72,20 @@ public sealed partial class ProjectViewModel : ObservableObject
         IsDirty = false;
     }
 
+    /// <summary>Dodaje DXF izvor i odmah računa hash sadržaja (ulaz u ključ cachea).</summary>
     public void AddDxf(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
-        DxfSources.Add(new ProjectDxfSource(Path.GetFileName(path), path));
+        DxfSources.Add(ProjectDxfSource.Create(
+            Path.GetFileName(path), path, CacheKey.HashFile(path)));
         IsDirty = true;
     }
 
-    public Task SaveAsync(ProjectDocument document, string path) => SaveInternalAsync(document, path, isAutoSave: false);
+    public Task SaveAsync(ProjectDocument document, string path, ToolpathCache? cache)
+        => SaveInternalAsync(document, path, cache, isAutoSave: false);
 
-    public Task AutoSaveAsync(ProjectDocument document) => SaveInternalAsync(document, _autoSave.AutoSavePath, isAutoSave: true);
+    public Task AutoSaveAsync(ProjectDocument document, ToolpathCache? cache)
+        => SaveInternalAsync(document, _autoSave.AutoSavePath, cache, isAutoSave: true);
 
     public Task<LoadedProject> LoadAsync(string path) => _store.LoadAsync(path);
 
@@ -84,9 +93,9 @@ public sealed partial class ProjectViewModel : ObservableObject
 
     public void ClearAutoSave() => _autoSave.ClearAutoSave();
 
-    private async Task SaveInternalAsync(ProjectDocument document, string path, bool isAutoSave)
+    private async Task SaveInternalAsync(ProjectDocument document, string path, ToolpathCache? cache, bool isAutoSave)
     {
-        await _store.SaveAsync(document, path).ConfigureAwait(true);
+        await _store.SaveAsync(document, path, cache).ConfigureAwait(true);
         if (isAutoSave)
         {
             return;
