@@ -97,7 +97,10 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         await _project.SaveAsync(CurrentDocument(), path, CurrentCache()).ConfigureAwait(true);
-        _logger.LogInformation("Projekt spremljen: {Path}", path);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation("Projekt spremljen: {Path}", path);
+        }
         StatusText = FormattableString.Invariant($"Projekt spremljen: {Path.GetFileName(path)}");
     }
 
@@ -131,9 +134,12 @@ public sealed partial class MainViewModel : ObservableObject
             Simulation.CurrentTime = time;
         }
 
-        _logger.LogInformation(
-            "Projekt otvoren: {Name} (format v{Version}, {Sources} DXF izvora).",
-            loaded.Document.Name, loaded.FormatVersion, loaded.Document.DxfSources.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Projekt otvoren: {Name} (format v{Version}, {Sources} DXF izvora).",
+                loaded.Document.Name, loaded.FormatVersion, loaded.Document.DxfSources.Count);
+        }
         StatusText = FormattableString.Invariant($"Projekt otvoren: {loaded.Document.Name}");
     }
 
@@ -174,9 +180,12 @@ public sealed partial class MainViewModel : ObservableObject
             return; // korisnik odustao
         }
 
-        _logger.LogInformation(
-            "G-kod izvezen: {Path} ({Post} / {Machine}, {Lines} redaka).",
-            path, plugin.DisplayName, ActiveMachine.Name, result.GCode.Count(c => c == '\n'));
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "G-kod izvezen: {Path} ({Post} / {Machine}, {Lines} redaka).",
+                path, plugin.DisplayName, ActiveMachine.Name, result.GCode.Count(c => c == '\n'));
+        }
         StatusText = FormattableString.Invariant($"G-kod spremljen: {Path.GetFileName(path)}");
     }
 
@@ -263,14 +272,17 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         LastImport = result;
-        _logger.LogInformation(
-            "DXF učitan: {Entities} entiteta, {Segments} segmenata, layeri: [{Layers}], jedinice: {Units} (×{Scale}), upozorenja: {WarningCount}.",
-            result.Entities.Count,
-            result.TotalSegmentCount,
-            string.Join(", ", result.Layers),
-            result.SourceUnits,
-            result.UnitScaleToMm,
-            result.Warnings.Count);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "DXF učitan: {Entities} entiteta, {Segments} segmenata, layeri: [{Layers}], jedinice: {Units} (×{Scale}), upozorenja: {WarningCount}.",
+                result.Entities.Count,
+                result.TotalSegmentCount,
+                string.Join(", ", result.Layers),
+                result.SourceUnits,
+                result.UnitScaleToMm,
+                result.Warnings.Count);
+        }
 
         foreach (var w in result.Warnings.Take(20))
         {
@@ -289,10 +301,13 @@ public sealed partial class MainViewModel : ObservableObject
         var outer = pipeline.Contours.Count(c => c.Kind == ContourKind.Outer);
         var holes = pipeline.Contours.Count(c => c.Kind == ContourKind.Hole);
         var open = pipeline.Contours.Count(c => c.Kind == ContourKind.Open);
-        _logger.LogInformation(
-            "Konture: {Total} ({Outer} vanjskih, {Holes} rupa, {Open} otvorenih); automatskih spojeva: {Joins}. Validacija: {Errors} grešaka, {Warnings} upozorenja, {Infos} informacija.",
-            pipeline.Contours.Count, outer, holes, open, pipeline.Joins.Count,
-            pipeline.Report.ErrorCount, pipeline.Report.WarningCount, pipeline.Report.InfoCount);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Konture: {Total} ({Outer} vanjskih, {Holes} rupa, {Open} otvorenih); automatskih spojeva: {Joins}. Validacija: {Errors} grešaka, {Warnings} upozorenja, {Infos} informacija.",
+                pipeline.Contours.Count, outer, holes, open, pipeline.Joins.Count,
+                pipeline.Report.ErrorCount, pipeline.Report.WarningCount, pipeline.Report.InfoCount);
+        }
 
         foreach (var issue in pipeline.Report.Issues.Take(30))
         {
@@ -302,17 +317,25 @@ public sealed partial class MainViewModel : ObservableObject
                 ValidationSeverity.Warning => LogLevel.Warning,
                 _ => LogLevel.Information,
             };
-            _logger.Log(level, "[{Code}] {Message}", issue.Code, issue.Message);
+            if (_logger.IsEnabled(level))
+            {
+                _logger.Log(level, "[{Code}] {Message}", issue.Code, issue.Message);
+            }
         }
 
         if (pipeline.Report.Issues.Count > 30)
         {
-            _logger.LogInformation("… i još {More} nalaza validacije.", pipeline.Report.Issues.Count - 30);
+            if (_logger.IsEnabled(LogLevel.Information))
+            {
+                _logger.LogInformation("… i još {More} nalaza validacije.", pipeline.Report.Issues.Count - 30);
+            }
         }
 
+        var errorSuffix = pipeline.Report.HasErrors
+            ? FormattableString.Invariant($", {pipeline.Report.ErrorCount} GREŠAKA")
+            : string.Empty;
         StatusText = FormattableString.Invariant(
-            $"Učitano: {Path.GetFileName(path)} — {pipeline.Contours.Count} kontura ({outer} vanjskih, {holes} rupa, {open} otvorenih)"
-            + (pipeline.Report.HasErrors ? FormattableString.Invariant($", {pipeline.Report.ErrorCount} GREŠAKA") : string.Empty));
+            $"Učitano: {Path.GetFileName(path)} — {pipeline.Contours.Count} kontura ({outer} vanjskih, {holes} rupa, {open} otvorenih){errorSuffix}");
 
         if (skipToolpath)
         {
@@ -329,12 +352,15 @@ public sealed partial class MainViewModel : ObservableObject
 
         var toolpath = await Task.Run(() => _toolpathGenerator.Generate(pipeline.Contours, ActiveTechnology)).ConfigureAwait(true);
         LastToolpath = toolpath;
-        _logger.LogInformation(
-            "Putanja: {Sequences} sekvenci (pierce), rez {CutLength:0.#} mm ({CutTime:0.#} s), brzi hodovi {RapidLength:0.#} mm ({RapidTime:0.#} s), probijanja {PierceTime:0.#} s — ukupno {Total:0.#} s.",
-            toolpath.Sequences.Count,
-            toolpath.Statistics.CutLength, toolpath.Statistics.CutTimeSeconds,
-            toolpath.Statistics.RapidLength, toolpath.Statistics.RapidTimeSeconds,
-            toolpath.Statistics.PierceTimeSeconds, toolpath.Statistics.TotalTimeSeconds);
+        if (_logger.IsEnabled(LogLevel.Information))
+        {
+            _logger.LogInformation(
+                "Putanja: {Sequences} sekvenci (pierce), rez {CutLength:0.#} mm ({CutTime:0.#} s), brzi hodovi {RapidLength:0.#} mm ({RapidTime:0.#} s), probijanja {PierceTime:0.#} s — ukupno {Total:0.#} s.",
+                toolpath.Sequences.Count,
+                toolpath.Statistics.CutLength, toolpath.Statistics.CutTimeSeconds,
+                toolpath.Statistics.RapidLength, toolpath.Statistics.RapidTimeSeconds,
+                toolpath.Statistics.PierceTimeSeconds, toolpath.Statistics.TotalTimeSeconds);
+        }
     }
 
     private bool CanUndo() => _undoService.CanUndo;
