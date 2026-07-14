@@ -30,7 +30,11 @@
     <PackageVersion Include="Dapper" Version="2.1.66" />
     <PackageVersion Include="Microsoft.Data.Sqlite" Version="9.0.0" />
     <PackageVersion Include="netDxf" Version="3.0.1" />
-    <PackageVersion Include="SkiaSharp" Version="2.88.9" />
-    <PackageVersion Include="SkiaSharp.Views.WinUI" Version="2.88.9" />
+    <!-- SkiaSharp 3.x: 2.88.x povlaci Uno Platform kao ovisnost i njegov
+         SkiaSharp.Views.WinUI.Native.Projection se NE moze razrijesiti uz
+         Windows App SDK 1.7 (XAML kompajler pada). 3.119.x ima ispravnu
+         WinUI podrsku bez Uno ovisnosti. -->
+    <PackageVersion Include="SkiaSharp" Version="3.119.0" />
+    <PackageVersion Include="SkiaSharp.Views.WinUI" Version="3.119.0" />
   </ItemGroup>
 </Project>

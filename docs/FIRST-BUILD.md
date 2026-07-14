@@ -24,7 +24,7 @@ Ako `restore` padne, ispravi verziju u TOJ jednoj datoteci:
 |---|---|---|
 | netDxf | 3.0.1 | provjeri stvarnu zadnju 3.x |
 | Clipper2 | 1.5.4 | paket se možda zove `Clipper2` ili `Clipper2Lib` |
-| SkiaSharp + SkiaSharp.Views.WinUI | 2.88.9 | ako je konflikt s Windows App SDK → 3.119.x |
+| SkiaSharp + SkiaSharp.Views.WinUI | **3.119.0** | 2.88.x POVLACI UNO PLATFORM i puca uz WinAppSDK 1.7 (vidi nize) |
 | Dapper | 2.1.66 | bilo koja 2.1.x |
 | Microsoft.Data.Sqlite | 9.0.0 | mora pratiti .NET 9 |
 | CommunityToolkit.Mvvm | (iz M0) | 8.x |
@@ -44,6 +44,22 @@ Sav netDxf kod je u **jednoj** datoteci: `src/Inostvor.Import.NetDxf/NetDxfImpor
 Sav Clipper kod je u **jednoj** datoteci: `src/Inostvor.Cam/Offset/ClipperAdapter.cs`.
 Provjeri potpise: `Clipper.InflatePaths(Paths64, double, JoinType, EndType)`,
 `Clipper.Area(Path64)`, `Point64(long, long)`.
+
+## POTVRDJENO: SkiaSharp 2.88.x NE RADI s Windows App SDK 1.7
+
+`SkiaSharp.Views.WinUI` **2.88.9** povlaci **Uno Platform** kao tranzitivnu ovisnost.
+Njegov `SkiaSharp.Views.WinUI.Native.Projection` se ne moze razrijesiti uz WinAppSDK 1.7,
+pa XAML kompajler pada s beskorisnom porukom `MSB3073: XamlCompiler.exe exited with code 1`.
+Pravi razlog vidljiv je samo uz `-v:detailed`:
+
+```
+Could not locate the assembly "SkiaSharp.Views.WinUI.Native.Projection"
+/reference:...uno.winui\5.2.132\lib\...\Uno.UI.Toolkit.dll
+```
+
+**Rjesenje:** SkiaSharp **3.119.0** — ima ispravnu WinUI podrsku bez Uno ovisnosti.
+API koji koristimo (SKPaint, SKPathEffect, SKXamlCanvas, SKPaintSurfaceEventArgs) je
+nepromijenjen.
 
 ## Rizik 4 — WinUI 3 / XAML
 
