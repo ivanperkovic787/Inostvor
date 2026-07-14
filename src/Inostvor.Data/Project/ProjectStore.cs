@@ -127,8 +127,15 @@ public sealed class ProjectStore : IProjectStore
             ?? throw new InvalidDataException("project.json se ne može pročitati.");
 
         // Raspakiraj DXF izvore u temp — pipeline ih uvozi kao obične datoteke.
-        var extractDir = Path.Combine(Path.GetTempPath(), "Inostvor",
-            "project_" + Path.GetFileNameWithoutExtension(path) + "_" + Environment.TickCount64);
+        //
+        // JEDINSTVENOST: Environment.TickCount64 ima rezoluciju ~15 ms, pa dva otvaranja
+        // projekta u istom trenutku dobiju ISTI direktorij i drugo puca s "file in use".
+        // GUID to isključuje.
+        var sessionRoot = Path.Combine(Path.GetTempPath(), "Inostvor", "projects");
+        CleanupStaleExtractions(sessionRoot);
+
+        var extractDir = Path.Combine(sessionRoot,
+            Path.GetFileNameWithoutExtension(path) + "_" + Guid.NewGuid().ToString("N")[..8]);
         Directory.CreateDirectory(extractDir);
 
         var extracted = new List<ProjectDxfSource>();
@@ -144,6 +151,51 @@ public sealed class ProjectStore : IProjectStore
         var finalDocument = document with { DxfSources = extracted };
 
         return new LoadedProject(finalDocument, version, ReadValidCache(zip, finalDocument));
+    }
+
+    /// <summary>
+    /// Briše raspakirane DXF-ove iz PRIJAŠNJIH sesija (starije od 24 h). Bez ovoga bi
+    /// svako otvaranje projekta trajno ostavljalo direktorij u %Temp%. Greške se tiho
+    /// progutaju — čišćenje smeća nikad ne smije spriječiti otvaranje projekta.
+    /// </summary>
+    private static void CleanupStaleExtractions(string sessionRoot)
+    {
+        try
+        {
+            if (!Directory.Exists(sessionRoot))
+            {
+                Directory.CreateDirectory(sessionRoot);
+                return;
+            }
+
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            foreach (var dir in Directory.GetDirectories(sessionRoot))
+            {
+                try
+                {
+                    if (Directory.GetLastWriteTimeUtc(dir) < cutoff)
+                    {
+                        Directory.Delete(dir, recursive: true);
+                    }
+                }
+                catch (IOException)
+                {
+                    // Direktorij je u upotrebi (druga instanca Inostvora) — preskoči.
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Nema prava — preskoči.
+                }
+            }
+        }
+        catch (IOException)
+        {
+            // Čišćenje je best-effort.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Čišćenje je best-effort.
+        }
     }
 
     /// <summary>
