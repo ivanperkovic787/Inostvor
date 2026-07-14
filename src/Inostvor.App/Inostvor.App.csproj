@@ -6,6 +6,9 @@
     <RootNamespace>Inostvor.App</RootNamespace>
     <Platforms>x64</Platforms>
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <!-- WindowsAppSDKSelfContained trazi EKSPLICITAN RuntimeIdentifier (jednina) i pri
+         obicnom buildu, ne samo pri publishu — inace: "requires a supported Windows architecture". -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <!-- Unpackaged, self-contained: radi bez instalacije runtime-a (offline zahtjev, ADR u docs/ARCHITECTURE.md §2) -->
