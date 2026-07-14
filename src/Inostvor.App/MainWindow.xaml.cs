@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Media;
 using Inostvor.Kernel.Primitives;
 using Inostvor.Rendering.Skia;
 using Inostvor.ViewModels;
-using SkiaSharp.Views.Windows;
+using Inostvor.App.Controls;
 
 namespace Inostvor.App;
 
@@ -135,22 +135,17 @@ public sealed partial class MainWindow : Window
 
     public ConsoleViewModel Console { get; }
 
-    private void OnPaintSurface(object sender, SKPaintSurfaceEventArgs e)
+    private void OnPaintSurface(object sender, SkiaPaintEventArgs e)
     {
-        if (Canvas.ActualWidth > 0)
-        {
-            _dpiScale = e.Info.Width / Canvas.ActualWidth;
-        }
+        _dpiScale = Canvas.DpiScale;
 
         var viewport = ViewModel.Viewport;
-        viewport.Camera.SetViewportSize(e.Info.Width, e.Info.Height);
+        viewport.Camera.SetViewportSize(e.Width, e.Height);
         _renderer.Draw(
-            e.Surface.Canvas, viewport.Camera, viewport.Scene,
+            e.Canvas, viewport.Camera, viewport.Scene,
             viewport.HighlightedContourId, viewport.IssueMarker,
             ViewModel.LastToolpath, ViewModel.Simulation.CurrentState);
     }
-
-    private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e) => Canvas.Invalidate();
 
     private void OnCanvasWheel(object sender, PointerRoutedEventArgs e)
     {

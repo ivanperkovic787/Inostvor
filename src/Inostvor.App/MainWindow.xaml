@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:toolkit="using:CommunityToolkit.WinUI.Controls"
     xmlns:vm="using:Inostvor.ViewModels"
-    xmlns:skia="using:SkiaSharp.Views.Windows">
+    xmlns:controls="using:Inostvor.App.Controls">
 
   <Grid>
     <Grid.RowDefinitions>
@@ -97,14 +97,13 @@
 
       <!-- Canvas: SkiaSharp viewport (M4) -->
       <Grid Grid.Column="2" Background="#FF1E1E1E">
-        <skia:SKXamlCanvas
+        <controls:SkiaCanvas
             x:Name="Canvas"
             PaintSurface="OnPaintSurface"
             PointerWheelChanged="OnCanvasWheel"
             PointerPressed="OnCanvasPointerPressed"
             PointerMoved="OnCanvasPointerMoved"
-            PointerReleased="OnCanvasPointerReleased"
-            SizeChanged="OnCanvasSizeChanged" />
+            PointerReleased="OnCanvasPointerReleased" />
         <StackPanel
             Orientation="Horizontal" Spacing="4"
             HorizontalAlignment="Right" VerticalAlignment="Top" Margin="8">
