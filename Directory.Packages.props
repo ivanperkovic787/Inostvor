@@ -6,7 +6,6 @@
     <!-- WinUI 3 / Windows App SDK -->
     <PackageVersion Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
     <PackageVersion Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
-    <PackageVersion Include="CommunityToolkit.WinUI.Controls.Sizers" Version="8.1.240916" />
 
     <!-- MVVM / DI / Logging -->
     <PackageVersion Include="CommunityToolkit.Mvvm" Version="8.4.0" />
