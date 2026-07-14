@@ -130,6 +130,62 @@ public sealed class ToolpathGeneratorTests
     }
 
     [Fact]
+    public void KerfPravokutnik_PutanjaNePresijecaKonturu()
+    {
+        // REGRESIJSKI TEST (bug otkriven u prvom pokretanju aplikacije):
+        // Kerf-offsetirani pravokutnik izlazio je IZOBLIČEN — gornji i desni rub
+        // izbočeni u luk, jer je ArcFitter gradio LINIJU preko skraćenog prozora
+        // koji NIJE bio ponovno verificiran. Nastajala je linija koja spaja dvije
+        // točke izvan tolerancije i PRESIJECA konturu (kut "odrezan" pravcem).
+        //
+        // Provjera: SVAKA točka generirane putanje mora biti na offsetiranoj
+        // udaljenosti od izvornog pravokutnika — ni unutar, ni izvan.
+        var contours = Contours(("0", SquareLines(0, 0, 100)));
+        var tech = TechnologySettings.Default with
+        {
+            KerfWidth = 1.5,
+            LeadInStyle = LeadStyle.None,
+            LeadOutStyle = LeadStyle.None,
+            OvercutLength = 0,
+        };
+
+        var program = Generator().Generate(contours, tech);
+
+        var cuts = program.Sequences.Single().Moves.Where(m => m.Kind == MoveKind.Cut).ToList();
+        cuts.ShouldNotBeEmpty();
+
+        // Putanja mora obuhvatiti pravokutnik prošireno za kerf/2 = 0.75 mm:
+        // granice ≈ (-0.75, -0.75) do (100.75, 100.75).
+        var points = cuts
+            .SelectMany(m => Enumerable.Range(0, 21).Select(k => m.Geometry.PointAt(k / 20.0)))
+            .ToList();
+
+        points.Min(p => p.X).ShouldBe(-0.75, 0.05);
+        points.Max(p => p.X).ShouldBe(100.75, 0.05);
+        points.Min(p => p.Y).ShouldBe(-0.75, 0.05);
+        points.Max(p => p.Y).ShouldBe(100.75, 0.05);
+
+        // KLJUČNO: nijedna točka putanje ne smije biti UNUTAR pravokutnika (presjek
+        // konture) niti predaleko izvan (izbočenje). Udaljenost od ruba pravokutnika
+        // mora biti ≈ 0.75 mm za svaku točku.
+        foreach (var p in points)
+        {
+            var dx = Math.Max(Math.Max(0 - p.X, p.X - 100), 0);
+            var dy = Math.Max(Math.Max(0 - p.Y, p.Y - 100), 0);
+            var outside = Math.Sqrt((dx * dx) + (dy * dy));
+
+            var insideX = Math.Min(p.X - 0, 100 - p.X);
+            var insideY = Math.Min(p.Y - 0, 100 - p.Y);
+            var inside = (dx == 0 && dy == 0) ? Math.Min(insideX, insideY) : 0;
+
+            var distanceFromEdge = outside > 0 ? outside : -inside;
+
+            distanceFromEdge.ShouldBeGreaterThan(-0.05); // NE presijeca konturu
+            distanceFromEdge.ShouldBeLessThan(0.85);     // NE izboči se van
+        }
+    }
+
+    [Fact]
     public void Determinizam_TriPokretanja_IdenticanProgram()
     {
         var contours = Contours(

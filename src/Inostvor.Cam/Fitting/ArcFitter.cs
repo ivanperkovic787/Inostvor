@@ -49,7 +49,7 @@ public sealed class ArcFitter : IArcFitter
         while (i < pts.Count - 1)
         {
             var lineEnd = ExtendLine(pts, i, tolerance);
-            var arcEnd = ExtendArc(pts, i, tolerance, out var arc);
+            var arcEnd = ExtendArc(pts, i, tolerance, pts.Count - 1, out var arc);
 
             if (arc is not null && arcEnd > lineEnd)
             {
@@ -101,22 +101,22 @@ public sealed class ArcFitter : IArcFitter
         var i = 0;
         while (i < n)
         {
-            var lineEnd = ExtendLine(doubled, i, tolerance);
-            var arcEnd = ExtendArc(doubled, i, tolerance, out var arc);
+            // KLJUČNO: prozori se traže SAMO do šava (indeks n). Ranije se dopuštalo
+            // prekoračenje pa naknadno skraćivanje — ali skraćeni prozor NIJE bio
+            // ponovno verificiran za LINIJU, pa je nastajala linija koja spaja dvije
+            // točke izvan tolerancije i PRESIJECA konturu (pravokutnik je izlazio
+            // izobličen: kutovi "odrezani" pravcem preko njih).
+            var limit = n;
+
+            var lineEnd = ExtendLine(doubled, i, tolerance, limit);
+            var arcEnd = ExtendArc(doubled, i, tolerance, limit, out var arc);
 
             var useArc = arc is not null && arcEnd > lineEnd;
             var end = useArc ? arcEnd : lineEnd;
 
-            // Ne prelazi preko punog obilaska: zadnji segment završava točno na šavu.
-            if (end > n)
+            if (end <= i)
             {
-                end = n;
-                if (useArc)
-                {
-                    // Preračunaj luk na skraćeni prozor (mora i dalje proći verifikaciju).
-                    arc = TryBuildVerifiedArc(doubled, i, end, tolerance);
-                    useArc = arc is not null;
-                }
+                break; // obrana od stajanja u mjestu
             }
 
             if (useArc)
@@ -126,11 +126,6 @@ public sealed class ArcFitter : IArcFitter
             else if (doubled[i].DistanceTo(doubled[end]) > Tolerance.Geometric)
             {
                 segments.Add(new LineSeg(doubled[i], doubled[end]));
-            }
-
-            if (end <= i)
-            {
-                break; // obrana od stajanja u mjestu
             }
 
             i = end;
@@ -180,11 +175,15 @@ public sealed class ArcFitter : IArcFitter
         return true;
     }
 
-    /// <summary>Najdalji j takav da su SVE točke i..j unutar tolerancije od tetive p[i]→p[j].</summary>
-    private static int ExtendLine(List<Point2> pts, int i, double tolerance)
+    /// <summary>
+    /// Najdalji j (≤ limit) takav da su SVE točke i..j unutar tolerancije od tetive p[i]→p[j].
+    /// </summary>
+    private static int ExtendLine(List<Point2> pts, int i, double tolerance, int limit = int.MaxValue)
     {
+        var maxIndex = Math.Min(limit, pts.Count - 1);
+
         var j = i + 1;
-        while (j + 1 < pts.Count)
+        while (j + 1 <= maxIndex)
         {
             var candidate = j + 1;
             if (pts[i].DistanceTo(pts[candidate]) <= Tolerance.Geometric)
@@ -224,12 +223,12 @@ public sealed class ArcFitter : IArcFitter
     /// koji prolazi verifikaciju (eksponencijalna pretraga + binarno sužavanje):
     /// veliki prozor je dobro uvjetovan, šum se poništava, luk se pronađe.
     /// </summary>
-    private static int ExtendArc(List<Point2> pts, int i, double tolerance, out ArcSeg? best)
+    private static int ExtendArc(List<Point2> pts, int i, double tolerance, int limit, out ArcSeg? best)
     {
         best = null;
         var bestEnd = i + 1;
 
-        var maxEnd = pts.Count - 1;
+        var maxEnd = Math.Min(limit, pts.Count - 1);
         if (maxEnd - i + 1 < MinArcPoints)
         {
             return bestEnd;
