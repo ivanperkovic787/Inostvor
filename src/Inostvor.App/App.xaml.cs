@@ -135,9 +135,12 @@ public partial class App : Application
         _host.Start();
 
         var logger = _host.Services.GetRequiredService<ILogger<App>>();
-        logger.LogInformation(
-            "Inostvor {Version} pokrenut.",
-            typeof(App).Assembly.GetName().Version);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation(
+                "Inostvor {Version} pokrenut.",
+                typeof(App).Assembly.GetName().Version);
+        }
 
         // Inicijalizacija pluginova (za sada samo ugrađeni import plugin).
         var pluginHost = _host.Services.GetRequiredService<IPluginHost>();
@@ -155,8 +158,11 @@ public partial class App : Application
                 machines.Save(profile);
             }
 
-            logger.LogInformation("Biblioteka strojeva inicijalizirana ({Count} ugrađenih profila).",
-                BuiltInMachineProfiles.All.Count);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Biblioteka strojeva inicijalizirana ({Count} ugrađenih profila).",
+                    BuiltInMachineProfiles.All.Count);
+            }
         }
 
         // Auto Save: sentinel označava aktivnu sesiju; uredan izlaz ga briše.

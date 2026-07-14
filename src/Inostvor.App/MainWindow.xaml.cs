@@ -127,8 +127,9 @@ public sealed partial class MainWindow : Window
     /// <summary>
     /// x:Bind funkcija: bool → Visibility. WinUI x:Bind ne radi implicitnu konverziju
     /// (klasični Binding radi), pa je ovo najčišći put bez IValueConvertera.
+    /// NIJE static: x:Bind generira INSTANCNI poziv (this.BoolToVisibility(...)).
     /// </summary>
-    public static Visibility BoolToVisibility(bool value)
+    public Visibility BoolToVisibility(bool value)
         => value ? Visibility.Visible : Visibility.Collapsed;
 
     public MainViewModel ViewModel { get; }
