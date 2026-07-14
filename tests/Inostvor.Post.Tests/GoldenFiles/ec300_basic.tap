@@ -2,7 +2,7 @@
 ( Sekvenci: 2 | Rez: 141.4 mm | Vrijeme: 5 s )
 G21 G90
 
-( Sekvenca 1/2 - kontura #7 )
+(Sekvenca 1/2 - kontura #7)
 G00 Z30
 G00 X10 Y15
 G00 Z3.8
@@ -16,7 +16,7 @@ X60 Y70
 X65 Y70
 M05
 
-( Sekvenca 2/2 - kontura #9 )
+(Sekvenca 2/2 - kontura #9)
 G00 Z30
 G00 X100 Y0
 G00 Z3.8
