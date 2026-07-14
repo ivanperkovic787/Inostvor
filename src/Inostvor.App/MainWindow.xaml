@@ -121,7 +121,7 @@
             HorizontalAlignment="Stretch" VerticalAlignment="Bottom"
             Padding="10,6,10,6"
             Background="#CC252526"
-            Visibility="{x:Bind ViewModel.Simulation.HasProgram, Mode=OneWay}">
+            Visibility="{x:Bind BoolToVisibility(ViewModel.Simulation.HasProgram), Mode=OneWay}">
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="Auto" />

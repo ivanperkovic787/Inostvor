@@ -17,6 +17,16 @@ public sealed partial class SimulationViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasProgram;
 
+    /// <summary>
+    /// Vidljivost transport trake. x:Bind (za razliku od klasičnog Binding-a) NE radi
+    /// implicitnu bool→Visibility konverziju, pa je izlažemo eksplicitno.
+    /// Vraća Microsoft.UI.Xaml.Visibility kao int (0 = Visible, 1 = Collapsed) da
+    /// ViewModels projekt ne ovisi o WinUI-ju.
+    /// </summary>
+    public bool IsTransportVisible => HasProgram;
+
+    partial void OnHasProgramChanged(bool value) => OnPropertyChanged(nameof(IsTransportVisible));
+
     [ObservableProperty]
     private bool _isPlaying;
 
