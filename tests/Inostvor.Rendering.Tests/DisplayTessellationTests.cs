@@ -28,12 +28,27 @@ public sealed class DisplayTessellationTests
     [Fact]
     public void GetArcPoints_IstiBucket_IstaInstanca()
     {
+        // Skale 1.2 i 1.8 daju tolerancije 0.417 i 0.278 — obje u bucketu -2
+        // (granice bucketa su na POTENCIJAMA BROJA 2: 0.25, 0.5, 1.0…).
         var cache = new DisplayTessellation();
-        var a = cache.GetArcPoints(1, Arc(), 1.0);
-        var b = cache.GetArcPoints(1, Arc(), 1.05); // ista razina zooma → isti bucket
+        var a = cache.GetArcPoints(1, Arc(), 1.2);
+        var b = cache.GetArcPoints(1, Arc(), 1.8);
 
-        ReferenceEquals(a, b).ShouldBeTrue();
+        ReferenceEquals(a, b).ShouldBeTrue(); // cache pogodak — bez regeneracije pri panu/finom zoomu
         cache.CachedEntryCount.ShouldBe(1);
+    }
+
+    [Fact]
+    public void GetArcPoints_PrelazakGraniceBucketa_NovaTessellacija()
+    {
+        // Skala 1.0 → tolerancija TOČNO 0.5 = 2^-1 (granica bucketa -1);
+        // skala 1.05 → 0.476 → bucket -2. Prijelaz granice MORA dati novu tessellaciju,
+        // inače bi prikaz pri zoomiranju ostao grublji od ciljanih 0.5 px.
+        var cache = new DisplayTessellation();
+        cache.GetArcPoints(1, Arc(), 1.0);
+        cache.GetArcPoints(1, Arc(), 1.05);
+
+        cache.CachedEntryCount.ShouldBe(2);
     }
 
     [Fact]
