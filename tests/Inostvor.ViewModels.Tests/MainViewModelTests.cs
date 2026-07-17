@@ -21,6 +21,9 @@ public sealed class MainViewModelTests
     private readonly IFileSaveService _fileSave = Substitute.For<IFileSaveService>();
     private readonly IProjectStore _store = Substitute.For<IProjectStore>();
     private readonly IAutoSaveService _autoSave = Substitute.For<IAutoSaveService>();
+    private readonly IFileHashService _fileHash = Substitute.For<IFileHashService>();
+
+    private ProjectViewModel _project = null!;
 
     private MainViewModel Create()
     {
@@ -28,7 +31,9 @@ public sealed class MainViewModelTests
             .Returns(new GeometryPipelineResult([], [], new ValidationReport([])));
         _toolpath.Generate(Arg.Any<IReadOnlyList<Core.Model.Geometry.Contour>>(), Arg.Any<TechnologySettings>())
             .Returns(ToolpathProgram.Empty);
-        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, _catalog, _fileSave, new ProjectViewModel(_store, _autoSave), NullLogger<MainViewModel>.Instance);
+        _fileHash.HashFile(Arg.Any<string>()).Returns("deadbeef");
+        _project = new ProjectViewModel(_store, _autoSave, _fileHash);
+        return new MainViewModel(_undo, _importer, _picker, _pipeline, _toolpath, _catalog, _fileSave, _project, NullLogger<MainViewModel>.Instance);
     }
 
     [Fact]
@@ -58,6 +63,11 @@ public sealed class MainViewModelTests
         vm.LastPipeline.ShouldBeNull();
         _pipeline.DidNotReceive().Process(Arg.Any<IReadOnlyList<ImportedEntity>>(), Arg.Any<Core.Model.Geometry.ContourBuildSettings>());
         vm.StatusText.ShouldContain("neuspješan");
+
+        // REGRESIJA: neuspješan import NE SMIJE ostaviti fantomski izvor u projektu
+        // (ranije se AddDxf zvao PRIJE importa, pa se pokvarena datoteka spremala u .ino).
+        _project.DxfSources.ShouldBeEmpty();
+        _project.IsDirty.ShouldBeFalse();
     }
 
     [Fact]
@@ -87,5 +97,11 @@ public sealed class MainViewModelTests
         _pipeline.Received(1).Process(ok.Entities, Arg.Any<Core.Model.Geometry.ContourBuildSettings>());
         vm.StatusText.ShouldContain("dobar.dxf");
         vm.StatusText.ShouldContain("kontura");
+
+        // Uspješan import dodaje izvor u projekt, s hashom kroz IFileHashService seam.
+        _project.DxfSources.ShouldHaveSingleItem();
+        _project.DxfSources[0].FileName.ShouldBe("dobar.dxf");
+        _project.DxfSources[0].Sha256.ShouldBe("deadbeef");
+        _project.IsDirty.ShouldBeTrue();
     }
 }

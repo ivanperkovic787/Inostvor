@@ -124,6 +124,7 @@ public partial class App : Application
         builder.Services.AddSingleton<ISettingsPortService, SettingsPortService>();
         builder.Services.AddSingleton<IProjectStore, ProjectStore>();
         builder.Services.AddSingleton<IAutoSaveService>(new AutoSaveService(appData));
+        builder.Services.AddSingleton<IFileHashService, FileHashService>();
         builder.Services.AddSingleton<ProjectViewModel>();
         builder.Services.AddSingleton<MachineProfileManagerViewModel>();
         builder.Services.AddSingleton<TechnologyLibraryViewModel>();

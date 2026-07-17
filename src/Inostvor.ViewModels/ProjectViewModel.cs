@@ -15,13 +15,16 @@ public sealed partial class ProjectViewModel : ObservableObject
 {
     private readonly IProjectStore _store;
     private readonly IAutoSaveService _autoSave;
+    private readonly IFileHashService _fileHash;
 
-    public ProjectViewModel(IProjectStore store, IAutoSaveService autoSave)
+    public ProjectViewModel(IProjectStore store, IAutoSaveService autoSave, IFileHashService fileHash)
     {
         ArgumentNullException.ThrowIfNull(store);
         ArgumentNullException.ThrowIfNull(autoSave);
+        ArgumentNullException.ThrowIfNull(fileHash);
         _store = store;
         _autoSave = autoSave;
+        _fileHash = fileHash;
     }
 
     [ObservableProperty]
@@ -77,7 +80,7 @@ public sealed partial class ProjectViewModel : ObservableObject
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);
         DxfSources.Add(ProjectDxfSource.Create(
-            Path.GetFileName(path), path, CacheKey.HashFile(path)));
+            Path.GetFileName(path), path, _fileHash.HashFile(path)));
         IsDirty = true;
     }
 

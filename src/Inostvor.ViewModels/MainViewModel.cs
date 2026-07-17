@@ -119,7 +119,7 @@ public sealed partial class MainViewModel : ObservableObject
         var useCache = loaded.Cache is not null;
         foreach (var source in loaded.Document.DxfSources)
         {
-            await ProcessDxfAsync(source.SourcePath, skipToolpath: useCache).ConfigureAwait(true);
+            _ = await ProcessDxfAsync(source.SourcePath, skipToolpath: useCache).ConfigureAwait(true);
         }
 
         if (loaded.Cache is not null)
@@ -254,12 +254,21 @@ public sealed partial class MainViewModel : ObservableObject
         }
 
         StatusText = FormattableString.Invariant($"Učitavanje: {Path.GetFileName(path)}…");
-        _project.AddDxf(path);
-        await ProcessDxfAsync(path).ConfigureAwait(true);
+
+        // Izvor se u projekt dodaje TEK NAKON uspješnog importa — neuspjeh je ranije
+        // ostavljao fantomski DXF izvor u projektu (i markirao projekt dirty), koji bi
+        // se potom i spremio u .ino datoteku.
+        if (await ProcessDxfAsync(path).ConfigureAwait(true))
+        {
+            _project.AddDxf(path);
+        }
     }
 
-    /// <summary>Uvoz + geometrijski cjevovod (+ putanja, osim ako je preuzeta iz cachea).</summary>
-    private async Task ProcessDxfAsync(string path, bool skipToolpath = false)
+    /// <summary>
+    /// Uvoz + geometrijski cjevovod (+ putanja, osim ako je preuzeta iz cachea).
+    /// Vraća false ako je import neuspješan (cjevovod se tada ne pokreće).
+    /// </summary>
+    private async Task<bool> ProcessDxfAsync(string path, bool skipToolpath = false)
     {
         // Import je CPU/IO posao — ne blokira UI thread.
         var result = await Task.Run(() => _importer.Import(path)).ConfigureAwait(true);
@@ -268,7 +277,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             _logger.LogError("DXF import neuspješan ({Importer}): {Error}", _importer.Name, result.Error);
             StatusText = "Import neuspješan — detalji u konzoli";
-            return;
+            return false;
         }
 
         LastImport = result;
@@ -339,7 +348,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         if (skipToolpath)
         {
-            return; // putanja dolazi iz valjanog cachea
+            return true; // putanja dolazi iz valjanog cachea
         }
 
         // M5: putanja se generira samo kad validacija nema grešaka.
@@ -347,7 +356,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             LastToolpath = null;
             _logger.LogWarning("Putanja NIJE generirana — validacija ima {Errors} grešaka.", pipeline.Report.ErrorCount);
-            return;
+            return true; // import je USPIO — izvor pripada projektu, samo putanje nema
         }
 
         var toolpath = await Task.Run(() => _toolpathGenerator.Generate(pipeline.Contours, ActiveTechnology)).ConfigureAwait(true);
@@ -361,6 +370,8 @@ public sealed partial class MainViewModel : ObservableObject
                 toolpath.Statistics.RapidLength, toolpath.Statistics.RapidTimeSeconds,
                 toolpath.Statistics.PierceTimeSeconds, toolpath.Statistics.TotalTimeSeconds);
         }
+
+        return true;
     }
 
     private bool CanUndo() => _undoService.CanUndo;
