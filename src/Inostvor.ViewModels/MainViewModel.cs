@@ -143,6 +143,17 @@ public sealed partial class MainViewModel : ObservableObject
         StatusText = FormattableString.Invariant($"Projekt otvoren: {loaded.Document.Name}");
     }
 
+    /// <summary>
+    /// Neuspio oporavak autosavea: logira uzrok i vraća UI u prazno stanje. NE baca —
+    /// pozivatelj je async void event handler kojeg bi iznimka srušila.
+    /// </summary>
+    public void ReportRecoveryFailure(Exception exception)
+    {
+        ArgumentNullException.ThrowIfNull(exception);
+        _logger.LogError(exception, "Oporavak automatski spremljenog projekta nije uspio — autosave se odbacuje.");
+        StatusText = "Oporavak nije uspio — automatski spremljeni projekt je odbačen.";
+    }
+
     /// <summary>Autosave; poziva se periodički iz UI-ja dok postoji uvezena geometrija.</summary>
     public async Task AutoSaveAsync()
     {

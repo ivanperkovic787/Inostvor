@@ -106,7 +106,20 @@ public sealed partial class MainWindow : Window
 
         if (await dialog.ShowAsync() == ContentDialogResult.Primary)
         {
-            await ViewModel.OpenProjectAsync(ViewModel.Project.AutoSavePath);
+            // Oporavak NIKAD ne smije srušiti aplikaciju: ovo je async void event
+            // handler, pa bi neuhvaćena iznimka iz OpenProjectAsync (npr. import
+            // oporavljenog DXF-a baci) tvrdo srušila proces prije nego se prozor i
+            // prikaže. Na neuspjeh: odbaci pokvareni autosave i kreni s praznim
+            // projektom (isti princip kao autosave — rad korisnika je svetinja).
+            try
+            {
+                await ViewModel.OpenProjectAsync(ViewModel.Project.AutoSavePath);
+            }
+            catch (Exception ex)
+            {
+                ViewModel.ReportRecoveryFailure(ex);
+                ViewModel.Project.ClearAutoSave();
+            }
         }
         else
         {

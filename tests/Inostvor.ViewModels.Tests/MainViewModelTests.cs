@@ -104,4 +104,29 @@ public sealed class MainViewModelTests
         _project.DxfSources[0].Sha256.ShouldBe("deadbeef");
         _project.IsDirty.ShouldBeTrue();
     }
+
+    [Fact]
+    public void ReportRecoveryFailure_ProgutaIznimku_PostaviStatus()
+    {
+        // REGRESIJA: aplikacija se rušila na startu jer je oporavak autosavea (async
+        // void event handler) puštao iznimku iz OpenProjectAsync. ReportRecoveryFailure
+        // MORA proći bez bacanja — inače proces tvrdo pada prije prikaza prozora.
+        var vm = Create();
+
+        Should.NotThrow(() => vm.ReportRecoveryFailure(new InvalidOperationException("oštećen autosave")));
+
+        vm.StatusText.ShouldContain("Oporavak nije uspio");
+    }
+
+    [Fact]
+    public async Task OpenProjectAsync_StoreBaci_IznimkaSePropagira()
+    {
+        // Dokumentira zašto pozivatelj (recovery) MORA imati try/catch: OpenProjectAsync
+        // namjerno propagira grešku učitavanja umjesto da je tiho proguta.
+        _store.LoadAsync(Arg.Any<string>())
+            .Returns(Task.FromException<Core.Model.Project.LoadedProject>(new IOException("nečitljiv .ino")));
+        var vm = Create();
+
+        await Should.ThrowAsync<IOException>(() => vm.OpenProjectAsync("C:\\test\\autosave.ino"));
+    }
 }
