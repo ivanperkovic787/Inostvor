@@ -41,3 +41,5 @@ Pokretanje aplikacije: `Inostvor.App` kao startup projekt (x64), F5.
 3. Svaki ispravljeni bug dobiva regression DXF u `tests/TestData/Regression/`.
 4. Bez TODO komentara. Modul se dovršava u cijelosti prije sljedećeg.
 5. Sve mutacije dokumenta (CutJob) idu kroz `IUndoableCommand` — nikad direktno.
+
+

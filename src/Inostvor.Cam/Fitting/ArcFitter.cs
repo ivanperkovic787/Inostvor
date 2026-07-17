@@ -6,9 +6,12 @@ namespace Inostvor.Cam.Fitting;
 
 /// <summary>
 /// Pohlepni arc fitting s APSOLUTNOM garancijom točnosti: luk se emitira samo
-/// ako SVE obuhvaćene ulazne točke leže unutar tolerancije od luka I kutovi su
-/// strogo monotoni duž smjera obilaska. U protivnom ostaju linije. Kolinearni
-/// nizovi komprimiraju se u jednu liniju (isti kriterij tolerancije).
+/// ako SVE obuhvaćene ulazne točke leže unutar tolerancije od luka, kutovi su
+/// strogo monotoni duž smjera obilaska I luk između susjednih točaka ne odstupa
+/// od njihove tetive više od 2× tolerancije (sagitta provjera — bez nje luk kroz
+/// RIJETKE točke prolazi točkovnu verifikaciju, a između točaka se izboči
+/// milimetrima). U protivnom ostaju linije. Kolinearni nizovi komprimiraju se
+/// u jednu liniju (isti kriterij tolerancije).
 ///
 /// Na svakoj poziciji računaju se maksimalni linijski i maksimalni lučni niz;
 /// bira se dulji (tie → linija, jer je jednostavnija). Deterministički.
@@ -153,6 +156,19 @@ public sealed class ArcFitter : IArcFitter
         foreach (var p in pts)
         {
             if (Math.Abs(center.DistanceTo(p) - radius) > tolerance)
+            {
+                return false;
+            }
+        }
+
+        // Sagitta provjera i za puni krug: točkovna provjera ne vidi odstupanje
+        // IZMEĐU rijetkih točaka (ista rupa kao u TryBuildVerifiedArc).
+        for (var k = 0; k < pts.Count; k++)
+        {
+            var a = (pts[k] - center).Angle;
+            var b = (pts[(k + 1) % pts.Count] - center).Angle;
+            var gap = MathUtil.NormalizeAngleSigned(b - a);
+            if (SagittaExceedsTolerance(radius, gap, tolerance))
             {
                 return false;
             }
@@ -329,7 +345,16 @@ public sealed class ArcFitter : IArcFitter
         var isCcw = aFar < aEnd;
 
         // VERIFIKACIJA (garancija točnosti): svaka točka unutar tolerancije od luka,
-        // kutovi strogo monotoni duž smjera obilaska.
+        // kutovi strogo monotoni duž smjera obilaska, i luk IZMEĐU susjednih točaka
+        // ne odstupa od njihove tetive više od tolerancije (sagitta provjera).
+        //
+        // Sagitta provjera je KLJUČNA za rijetke ulaze: kod offsetiranog pravokutnika
+        // točke su zgusnute na zaobljenim kutovima, a dugi ravni rub ima samo krajnje
+        // točke. Veliki LSQ krug prolazi kroz SVE točke unutar tolerancije (i kutovi
+        // su monotoni), ali se između rijetkih točaka izboči za sagittu — na rubu od
+        // 100 mm i to je bilo ~5 mm ("gornji i desni rub izbočeni u luk"). Točkovna
+        // provjera to NE MOŽE uhvatiti; odstupanje luka od stvarne konture između
+        // točaka ograničava jedino sagitta = R·(1 − cos(Δθ/2)).
         var previousOffset = 0.0;
         for (var k = i; k <= j; k++)
         {
@@ -351,6 +376,11 @@ public sealed class ArcFitter : IArcFitter
                 return null; // kut se vraća — nije jednostavan luk
             }
 
+            if (SagittaExceedsTolerance(radius, forward - previousForward, tolerance))
+            {
+                return null; // luk se između susjednih točaka odvaja od konture
+            }
+
             previousOffset = offset;
         }
 
@@ -364,6 +394,35 @@ public sealed class ArcFitter : IArcFitter
         // uz centar iz LSQ fita — polumjer se preračunava iz početne točke.
         var anchoredRadius = center.DistanceTo(pts[i]);
         return new ArcSeg(center, anchoredRadius, a0, sweep);
+    }
+
+    /// <summary>
+    /// Maksimalno odstupanje luka od tetive između dviju SUSJEDNIH ulaznih točaka
+    /// na kružnici polumjera R razdvojenih kutom Δθ: sagitta = R·(1 − cos(Δθ/2)).
+    ///
+    /// Budžet je 2× tolerancija, NE 1×: ulazne točke dolaze iz tessellacije čija je
+    /// sagitta ≤ OffsetTessellationTolerance, a default je JEDNAK ArcFittingTolerance
+    /// (obje 0.01 mm). Legitiman gusti luk zato ima razmake točno NA granici 1×
+    /// tolerancije — stroga usporedba bi ga zbog šuma (Clipper kvantizacija ±0.5 µm,
+    /// LSQ pomak centra) nasumično odbacivala. Bug koji ova provjera lovi (luk
+    /// preko rijetkih točaka ravnog ruba) ima sagittu reda MILIMETARA — margina 2×
+    /// ne umanjuje zaštitu, a ukupno odstupanje od izvorne konture ostaje omeđeno
+    /// s tessellacija + 2·tolerancija.
+    ///
+    /// Kutni razmak ≥ π znači obilazak pola kruga ili više između susjednih točaka —
+    /// odstupanje je tada ≥ R i uvijek se odbacuje.
+    /// </summary>
+    private static bool SagittaExceedsTolerance(double radius, double angularGap, double tolerance)
+    {
+        var budget = 2.0 * tolerance;
+        var gap = Math.Abs(angularGap);
+        if (gap >= Math.PI)
+        {
+            return radius > budget;
+        }
+
+        var sagitta = radius * (1.0 - Math.Cos(gap / 2.0));
+        return sagitta > budget;
     }
 
     /// <summary>

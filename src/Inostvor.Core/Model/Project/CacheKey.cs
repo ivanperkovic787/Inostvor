@@ -16,7 +16,7 @@ public static class CacheKey
     /// izlaz (kerf, arc fitting, leadovi, redoslijed, IR). Time se svi postojeći
     /// cachevi automatski odbacuju; NIJE potrebna migracija projekata.
     /// </summary>
-    public const int PipelineVersion = 1;
+    public const int PipelineVersion = 2; // v2: ArcFitter sagitta provjera (luk između rijetkih točaka)
 
     /// <summary>SHA-256 datoteke (hex, mala slova).</summary>
     public static string HashFile(string path)
