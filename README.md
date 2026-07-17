@@ -42,4 +42,3 @@ Pokretanje aplikacije: `Inostvor.App` kao startup projekt (x64), F5.
 4. Bez TODO komentara. Modul se dovršava u cijelosti prije sljedećeg.
 5. Sve mutacije dokumenta (CutJob) idu kroz `IUndoableCommand` — nikad direktno.
 
-
